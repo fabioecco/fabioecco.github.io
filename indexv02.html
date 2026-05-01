@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oficina do Playtest Hub</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card-bg: #1f1f1f;
+      --accent: #ff6600;
+      --text: #fff;
+      --muted: #ccc;
+    }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    header {
+      background: var(--card-bg);
+      padding: 2rem 1rem;
+      text-align: center;
+      border-bottom: 1px solid #333;
+    }
+    header h1 {
+      font-size: 2.2rem;
+      color: var(--accent);
+      margin: 0;
+    }
+    header p {
+      max-width: 700px;
+      margin: 1rem auto 0;
+      color: var(--muted);
+    }
+    section {
+      padding: 3rem 1rem;
+      max-width: 1000px;
+      margin: auto;
+    }
+    section h2 {
+      color: var(--accent);
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--accent);
+      padding-bottom: 0.5rem;
+    }
+    .info-card {
+      background: var(--card-bg);
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: transform 0.2s;
+    }
+    .card:hover { transform: translateY(-4px); }
+    .card img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+    }
+    .card-content {
+      padding: 1rem;
+    }
+    .card-content h3 {
+      margin: 0 0 0.5rem;
+      color: var(--accent);
+      font-size: 1.1rem;
+    }
+    .card-content p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+    .card-content a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .card-content a:hover { text-decoration: underline; }
+    .search-box {
+      text-align: center;
+      margin: 2rem 0;
+    }
+    .search-box input {
+      width: 80%;
+      max-width: 400px;
+      padding: 0.6rem;
+      border-radius: 6px;
+      border: none;
+      outline: none;
+      background: #1a1a1a;
+      color: var(--text);
+      font-size: 1rem;
+    }
+    footer {
+      background: var(--card-bg);
+      text-align: center;
+      padding: 2rem 1rem;
+      border-top: 1px solid #333;
+    }
+    footer a {
+      color: var(--accent);
+      margin: 0 0.5rem;
+      text-decoration: none;
+    }
+    iframe {
+      width: 100%;
+      height: 250px;
+      border: none;
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+
+    .menu {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background: var(--card-bg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  box-sizing: border-box;
+  z-index: 1000;
+  flex-wrap: wrap; /* <- ESSENCIAL */
+}
+
+.menu a {
+  flex: 1 1 auto; /* <- FAZ OS ITENS SE AJUSTAREM */
+  text-align: center;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: 0.5rem 0.2rem;
+  white-space: nowrap;
+}
+
+.menu a:hover {
+  background: #333;
+  border-radius: 4px;
+}
+
+/* Evita que o conteúdo fique escondido atrás do menu */
+body {
+  padding-top: 60px;
+}
+
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+}
+
+.modal-content {
+  background: var(--card-bg);
+  margin: 5% auto;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 600px;
+  border-radius: 8px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-content p {
+  white-space: pre-line;
+}
+
+.modal-content a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.modal-content a:hover {
+  text-decoration: underline;
+}
+
+.modal-content img {
+  width: 100%;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.fechar {
+  float: right;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.apoiadores-logos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.apoiadores-logos img {
+  max-height: 100px;
+  max-width: auto;
+  object-fit: contain;
+  filter: grayscale(50%);
+  opacity: 0.8;
+  transition: 0.2s;
+}
+
+.apoiadores-logos img:hover {
+  filter: none;
+  opacity: 1;
+}
+  </style>
+</head>
+<body>
+
+  <nav class="menu">
+  <a href="#encontros">Encontros</a>
+  <a href="#prototipos">Protótipos</a>
+  <a href="#financiamento">Financiamento</a>
+  <a href="#eventos">Eventos</a>
+  </nav>
+
+  <header>
+    <p><img src="oficinalogo.png" alt="" width="380" height="auto"><br>
+      Comunidade brasileira de autores de jogos de tabuleiro modernos.<br>Somos um grupo aberto, gratuito, coletivo e colaborativo.</p>
+  </header>
+
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Buscar por autor, jogo ou eventos..." oninput="filtrar()">
+  </div>
+
+  <section id="encontros">
+    <h2>Encontros de Playtest</h2>
+    <div class="grid" id="lista-encontros"></div>
+    <div style="width:100%; background:#1f1f1f; border-top:1px solid #333; margin-top:1.5rem; padding:0.8rem 1rem; box-sizing:border-box; text-align:center; color:#ccc; font-size:0.9rem;">
+  Participe também da <a href="https://discord.gg/5dN33M4xbd" target="_blank" style="color:#ff6600; text-decoration:none; font-weight:bold;">Oficina do Playtest Online</a> 
+  pelo Discord. Segundas de 20:30h às 22:30h e Quartas de 21h às 23h.
+    </div>
+    <div style="width:100%; background:#1f1f1f; border-top:1px solid #333; margin-top:1.5rem; padding:0.8rem 1rem; box-sizing:border-box; text-align:center; color:#ccc; font-size:0.9rem;">
+  Conheça a <a href="https://www.instagram.com/oficinadasligadas/" target="_blank" style="color:#ff6600; text-decoration:none; font-weight:bold;">Oficina das Ligadas</a>, 
+  um grupo de Playtest on-line de jogos de tabuleiro exclusivo para mulheres!
+    </div>
+  </section>
+
+  <section id="prototipos">
+    <h2>Protótipos</h2>
+    <div class="grid" id="lista-prototipos"></div>
+  </section>
+
+  <section id="financiamento">
+    <h2>Jogos em Financiamento</h2>
+    <div class="grid" id="lista-financiamento"></div>
+  </section>
+
+  <section id="eventos">
+    <h2>Eventos</h2>
+    <div class="grid" id="lista-eventos"></div>
+  </section>
+
+  <section id="apoiadores">
+  <h2>Parceiros</h2>
+  <div class="apoiadores-logos">
+    <img src="logoparceiro01.png" alt="">
+    <img src="logoparceiro02.png" alt="">
+    <img src="logoparceiro03.png" alt="">
+  </div>
+  </section>
+
+  <footer>
+    <p>Oficina do Playtest</p>
+    <p>
+      <a href="https://www.instagram.com/oficinadoplaytest/" target="_blank">Instagram</a> |
+      <a href="https://discord.gg/5dN33M4xbd" target="_blank">Discord</a> |
+      <a href="https://www.facebook.com/groups/OficinadoPlaytest/" target="_blank">Facebook</a> |
+      <a href="#" target="_blank">Contato</a>
+    </p>
+  </footer>
+
+  <!-- Papa Parse -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <script>
+    // Substitua pelos seus links de planilhas
+    const sheetEncontros = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8w4hSCmG1ehAFVV86xrgQdVHjusAOfeBCBcE1d7AHa2a8l3nEMHFv9Yin3ApmzETVH9hGaSQI_59J/pub?output=csv";
+    const sheetPrototipos = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQc769I0vqguohlzWJxM9CtTEGzbF_2r0S37TkY-4FJ5jtCSvuF8gOR8AW92SRyVRh2xjHw8XaajLBx/pub?output=csv";
+    const sheetFinanciamento = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpP-CQFhmj-0XH7Pp4aUalXf44js1xbXAcZjnmJk1lQRdSyLVYEU6kIZEQ5sv-hEcdJ-BAiXBnDH0W/pub?output=csv";
+    const sheetEventos = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTTh7iBk8uRDDD1iLaG2q4PauQCQSkosEnk-7QRuE4kIh6IPlBZM_e0gKBzS-tXdtw1Es0bjygjp8Uw/pub?output=csv";
+
+    // Cards de Prototipos e Financiamentos puxando da planilha/CSV
+    async function carregarCSV(url, containerId) {
+      const res = await fetch(url);
+      const text = await res.text();
+      const linhas = Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true
+    });
+      const dados = linhas.data.sort((a, b) => {
+      return (a.nome || "").localeCompare(b.nome || "", "pt-BR", { sensitivity: "base" });
+    });
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+
+      dados.forEach(l => {
+      const { thumb, nome, autor, descricao, link, maisdetalhes, email, imagemgrande, video } = l;
+        if (!nome) return;
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <img src="${thumb || 'prototipo.png'}" alt="">
+          <div class="card-content">
+            <h3>${nome}</h3>
+            ${autor ? `<p>${autor}</p>` : ""}
+            <p>${descricao || ""}</p>
+            <a href="#" class="btn-detalhes">Ver detalhes</a>
+          </div>`;
+          card.querySelector(".btn-detalhes").addEventListener("click", (e) => {
+          e.preventDefault();
+          abrirModal(l);
+        });
+        container.appendChild(card);
+      });
+    }
+
+    // Cards de Eventos puxando da planilha/CSV
+    async function carregarCSVe(url, containerId) {
+      const res = await fetch(url);
+      const text = await res.text();
+      const linhas = Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true
+    });
+
+    // Função para converter DD/MM/AAAA em Date
+  function parseData(dataStr) {
+    if (!dataStr) return null;
+    const partes = dataStr.split("/");
+    if (partes.length === 3) {
+      const [dia, mes, ano] = partes;
+      return new Date(ano, mes - 1, dia);
+    }
+    const d = new Date(dataStr);
+    return isNaN(d) ? null : d;
+  }
+
+  // Ordenar por data
+  const dados = linhas.data
+    .map(l => {
+      return { ...l, dataObj: parseData(l.data) };
+    })
+    .sort((a, b) => {
+    const hoje = new Date();
+
+    const aPassado = a.dataObj && a.dataObj < hoje;
+    const bPassado = b.dataObj && b.dataObj < hoje;
+
+    // Passados vão pro final
+    if (aPassado && !bPassado) return 1;
+    if (!aPassado && bPassado) return -1;
+
+    // Dentro do mesmo grupo, ordena por data
+    return (a.dataObj || 0) - (b.dataObj || 0);
+  });
+
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+
+      const hoje = new Date();
+
+      dados.forEach(l => {
+      const { thumb, nome, data, horario, local, descricao, link } = l;
+        if (!nome) return;
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <img src="${thumb || 'evento.png'}" 
+     style="${l.dataObj && l.dataObj < hoje ? 'filter: grayscale(100%); opacity: 0.6;' : ''}">
+          <div class="card-content">
+            <h3>${nome}</h3>
+            ${data ? `<p>${data}` : "<p>10 hs"}
+            ${horario ? `${horario}</p>` : "</p>"}
+            <p>${descricao || ""}</p>
+            ${local ? `<p>${local}</p>` : ""}
+            ${link ? `<a href="${link}" target="_blank">Ver mais</a>` : ""}
+          </div>`;
+        container.appendChild(card);
+      });
+    }
+
+    // Cards de Encontros de Playtest puxando da planilha/CSV
+    async function carregarCSVp(url, containerId) {
+      const res = await fetch(url);
+      const text = await res.text();
+      const linhas = Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true
+    });
+      const dados = linhas.data.sort((a, b) => {
+      return (a.nome || "").localeCompare(b.nome || "", "pt-BR", { sensitivity: "base" });
+    });
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+
+      dados.forEach(l => {
+      const { thumb, nome, data, horario, local, descricao, link } = l;
+        if (!nome) return;
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <img src="${thumb || 'semimagem.png'}" alt="">
+          <div class="card-content">
+            <h3>${nome}</h3>
+            ${data ? `<p>${data}` : "<p>10 hs"}
+            ${horario ? `${horario}</p>` : "</p>"}
+            <p>${descricao || ""}</p>
+            ${local ? `<p>${local}</p>` : ""}
+            ${link ? `<a href="${link}" target="_blank">Ver mais</a>` : ""}
+          </div>`;
+        container.appendChild(card);
+      });
+    }
+
+    // Carregar todas as seções
+    carregarCSVp(sheetEncontros, "lista-encontros");
+    carregarCSV(sheetPrototipos, "lista-prototipos");
+    carregarCSV(sheetFinanciamento, "lista-financiamento");
+    carregarCSVe(sheetEventos, "lista-eventos");
+
+    // Função de filtro por autor ou jogo
+    function filtrar() {
+      const termo = document.getElementById("searchInput").value.toLowerCase();
+      document.querySelectorAll(".card").forEach(card => {
+        const texto = card.innerText.toLowerCase();
+        card.style.display = texto.includes(termo) ? "block" : "none";
+      });
+    }
+
+    // Modal Overlay
+    function abrirModal(l) {
+    const modal = document.getElementById("modal");
+    const body = document.getElementById("modal-body");
+
+    body.innerHTML = `
+      <h2>${l.nome}</h2>
+
+      ${l.autor ? `<p><strong>${l.autor}</strong></p>` : ""}
+
+      ${l.imagemgrande ? `<img src="${l.imagemgrande}">` : ""}
+
+      ${l.video ? `<iframe src="${l.video.replace("watch?v=", "embed/")}" allowfullscreen></iframe>` : ""}
+
+      <p>${l.maisdetalhes || ""}</p>
+
+      ${l.email ? `<p><strong>Contato:</strong> ${l.email}</p>` : ""}
+      ${l.link ? `<p><a href="${l.link}" target="_blank">Site do Projeto</a></p>` : ""}
+    `;
+
+    modal.style.display = "block";
+  }
+
+  // fechar modal
+  window.addEventListener("DOMContentLoaded", () => {
+    document.querySelector(".fechar").onclick = () => {
+      document.getElementById("modal").style.display = "none";
+    };
+  });
+  // fechar clicando fora
+  window.onclick = (e) => {
+  const modal = document.getElementById("modal");
+  if (e.target === modal) modal.style.display = "none";
+  };
+
+  </script>
+
+  <div id="modal" class="modal">
+  <div class="modal-content">
+    <span class="fechar">&times;</span>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+</body>
+</html>
