@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oficina do Playtest Hub</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card-bg: #1f1f1f;
+      --accent: #ff6600;
+      --text: #fff;
+      --muted: #ccc;
+    }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    header {
+      background: var(--card-bg);
+      padding: 2rem 1rem;
+      text-align: center;
+      border-bottom: 1px solid #333;
+    }
+    header h1 {
+      font-size: 2.2rem;
+      color: var(--accent);
+      margin: 0;
+    }
+    header p {
+      max-width: 700px;
+      margin: 1rem auto 0;
+      color: var(--muted);
+    }
+    section {
+      padding: 3rem 1rem;
+      max-width: 1000px;
+      margin: auto;
+    }
+    section h2 {
+      color: var(--accent);
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--accent);
+      padding-bottom: 0.5rem;
+    }
+    .info-card {
+      background: var(--card-bg);
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: transform 0.2s;
+    }
+    .card:hover { transform: translateY(-4px); }
+    .card img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+    }
+    .card-content {
+      padding: 1rem;
+    }
+    .card-content h3 {
+      margin: 0 0 0.5rem;
+      color: var(--accent);
+      font-size: 1.1rem;
+    }
+    .card-content p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+    .card-content a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .card-content a:hover { text-decoration: underline; }
+    .search-box {
+      text-align: center;
+      margin: 2rem 0;
+    }
+    .search-box input {
+      width: 80%;
+      max-width: 400px;
+      padding: 0.6rem;
+      border-radius: 6px;
+      border: none;
+      outline: none;
+      background: #1a1a1a;
+      color: var(--text);
+      font-size: 1rem;
+    }
+    footer {
+      background: var(--card-bg);
+      text-align: center;
+      padding: 2rem 1rem;
+      border-top: 1px solid #333;
+    }
+    footer a {
+      color: var(--accent);
+      margin: 0 0.5rem;
+      text-decoration: none;
+    }
+    iframe {
+      width: 100%;
+      height: 250px;
+      border: none;
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+
+    .menu {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background: var(--card-bg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  box-sizing: border-box;
+  z-index: 1000;
+  flex-wrap: wrap; /* <- ESSENCIAL */
+}
+
+.menu a {
+  flex: 1 1 auto; /* <- FAZ OS ITENS SE AJUSTAREM */
+  text-align: center;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: 0.5rem 0.2rem;
+  white-space: nowrap;
+}
+
+.menu a:hover {
+  background: #333;
+  border-radius: 4px;
+}
+
+/* Evita que o conteúdo fique escondido atrás do menu */
+body {
+  padding-top: 0px;
+}
+
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+}
+
+.modal-content {
+  background: var(--card-bg);
+  margin: 5% auto;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 600px;
+  border-radius: 8px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-content p {
+  white-space: pre-line;
+}
+
+.modal-content a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.modal-content a:hover {
+  text-decoration: underline;
+}
+
+.modal-content img {
+  width: 100%;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.fechar {
+  float: right;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.apoiadores-logos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.apoiadores-logos img {
+  max-height: 100px;
+  max-width: auto;
+  object-fit: contain;
+  filter: grayscale(50%);
+  opacity: 0.8;
+  transition: 0.2s;
+}
+
+.apoiadores-logos img:hover {
+  filter: none;
+  opacity: 1;
+}
+  </style>
+</head>
+<body>
+
+  <header>
+    <p><img src="oficinalogo.png" alt="" width="380" height="auto"><br>
+      Comunidade brasileira de autores de jogos de tabuleiro modernos.<br>Somos um grupo aberto, gratuito, coletivo e colaborativo.</p>
+  </header>
+
+  <section>
+  <h2>Sobre o Oficina Hub</h2>
+
+  <div class="info-card">
+    <p>
+      Essa é uma plataforma comunitária e colaborativa para autores independentes de board games, onde qualquer membro pode adicionar e atualizar informações sobre encontros 
+      de playtest, protótipos, campanhas de financiamento e eventos.<br>
+      Os objetivos são facilitar a descoberta e organização de encontros, oferecer uma vitrine dos projetos da comunidade e criar uma ponte entre autores e editoras em busca de novos jogos.<br>
+      Os seguintes links dão acesso às planilhas que atualizam o conteúdo do site. Envie um pedido para se tornar Editor e colaborar com as informações divulgadas no site.<br>
+      - Fabio
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2>Planilhas</h2>
+
+  <div class="info-card">
+    <p><strong>Encontros:</strong> 
+      <a href="https://docs.google.com/spreadsheets/d/1TITivPWnBl8cZu3GPOdrYMuVORTls2JQUUFWXY02iNs/edit?usp=sharing" target="_blank">Acessar planilha</a>
+    </p>
+
+    <p><strong>Protótipos:</strong> 
+      <a href="https://docs.google.com/spreadsheets/d/16UKssetYIQ7Hz0x2rcTdkDfRYVnFfGx9LvsDtrcSkKs/edit?usp=sharing" target="_blank">Acessar planilha</a>
+    </p>
+
+    <p><strong>Eventos:</strong> 
+      <a href="https://docs.google.com/spreadsheets/d/1O4uzqQG2w1sHyA8ZovULGcQDavp0gmiZOXlOZ0-i37U/edit?usp=sharing" target="_blank">Acessar planilha</a>
+    </p>
+
+    <p><strong>Financiamento:</strong> 
+      <a href="https://docs.google.com/spreadsheets/d/1sfJxylja8oAVjmoIZIaEc9XaMFB0h0vfLlWZpXuoddQ/edit?usp=sharing" target="_blank">Acessar planilha</a>
+    </p>
+  </div>
+</section>
+
+<section>
+    <h2>Doações</h2>
+  <div class="info-card">
+    <p>Se você curtiu o projeto e deseja contribuir com qualquer valor:<br> 
+      <a href="https://www.paypal.com/donate/?hosted_button_id=XGVRLSCZDXAQJ" target="_blank">Doar pelo PayPal</a>
+    </p>
+  </div>
+</section>
+
+  <footer>
+    <p>Oficina do Playtest</p>
+    <p>
+      <a href="https://www.instagram.com/oficinadoplaytest/" target="_blank">Instagram</a> |
+      <a href="https://discord.gg/5dN33M4xbd" target="_blank">Discord</a> |
+      <a href="https://www.facebook.com/groups/OficinadoPlaytest/" target="_blank">Facebook</a> |
+      <a href="sobre.html" target="_blank">Sobre</a>
+    </p>
+  </footer>
+
+  </body>
+</html>
