@@ -257,13 +257,15 @@ body {
   <section id="encontros">
     <h2>Encontros de Playtest</h2>
     <div class="grid" id="lista-encontros"></div>
-    <div style="width:100%; background:#1f1f1f; border-top:1px solid #333; margin-top:1.5rem; padding:0.8rem 1rem; box-sizing:border-box; text-align:center; color:#ccc; font-size:0.9rem;">
-  Participe também da <a href="https://discord.gg/5dN33M4xbd" target="_blank" style="color:#ff6600; text-decoration:none; font-weight:bold;">Oficina do Playtest Online</a> 
-  pelo Discord. Segundas de 20:30h às 22:30h e Quartas de 21h às 23h.
+    <div id="encontro-opon" style="width:100%; background:#1f1f1f; border-top:1px solid #333; margin-top:1.5rem; padding:0.8rem 1rem; box-sizing:border-box; text-align:center; color:#ccc; font-size:0.9rem;">
+    <p><a href="https://discord.gg/5dN33M4xbd" target="_blank" style="color:#ff6600; text-decoration:none; font-weight:bold;">Oficina do Playtest Online</a></p>
+    <p class="ao-vivo" style="display:none; color:#4CAF50; font-weight:bold; animation: blink 1.5s infinite;">Acontecendo agora!</p>
+    <p>Grupo de Playtest pelo Discord. Segundas de 20:30h às 22:30h e Quartas de 21h às 23h.</p>
     </div>
-    <div style="width:100%; background:#1f1f1f; border-top:1px solid #333; margin-top:1.5rem; padding:0.8rem 1rem; box-sizing:border-box; text-align:center; color:#ccc; font-size:0.9rem;">
-  Conheça a <a href="https://www.instagram.com/oficinadasligadas/" target="_blank" style="color:#ff6600; text-decoration:none; font-weight:bold;">Oficina das Ligadas</a>, 
-  um grupo de Playtest on-line de jogos de tabuleiro exclusivo para mulheres! Segundas de 20h às 22h.
+    <div id="encontro-ligadas" style="width:100%; background:#1f1f1f; border-top:1px solid #333; margin-top:1.5rem; padding:0.8rem 1rem; box-sizing:border-box; text-align:center; color:#ccc; font-size:0.9rem;">
+    <p><a href="https://www.instagram.com/oficinadasligadas/" target="_blank" style="color:#ff6600; text-decoration:none; font-weight:bold;">Oficina das Ligadas</a></p>
+    <p class="ao-vivo" style="display:none; color:#4CAF50; font-weight:bold; animation: blink 1.5s infinite;">Acontecendo agora!</p>
+    <p>Grupo de Playtest on-line de jogos de tabuleiro exclusivo para mulheres! Segundas de 20h às 22h.</p>
     </div>
   </section>
 
@@ -543,6 +545,21 @@ body {
         card.style.display = texto.includes(termo) ? "block" : "none";
       });
     }
+
+    // Acontecendo Agora para OPON e Ligadas
+    function atualizarEncontrosFixos() {
+    const opon = encontroAcontecendoAgora("segunda", "20:30 às 22:30") ||
+                    encontroAcontecendoAgora("quarta", "21h às 23h");
+    const ligadas = encontroAcontecendoAgora("segunda", "20h às 22h");
+    if (opon) {
+      document.querySelector("#encontro-opon .ao-vivo").style.display = "block";
+    }
+    if (ligadas) {
+      document.querySelector("#encontro-ligadas .ao-vivo").style.display = "block";
+    }
+  }
+
+    window.addEventListener("DOMContentLoaded", atualizarEncontrosFixos);
 
     // Modal Overlay
     function abrirModal(l) {
