@@ -228,10 +228,12 @@ body {
   opacity: 1;
 }
 
-.ao-vivo {
-  color: #4CAF50;
-  font-weight: bold;
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
 }
+
   </style>
 </head>
 <body>
@@ -478,7 +480,7 @@ body {
           <img src="${thumb || 'evento.png'}" style="${l.dataObj && l.dataObj < hoje ? 'filter: grayscale(100%); opacity: 0.6;' : ''}" alt="">
           <div class="card-content">
             <h3>${nome}</h3>
-            ${acontecendo ? `<p class="ao-vivo">Acontecendo agora!</p>` : ""}
+            ${acontecendo ? `<p style="color:#4CAF50; font-weight:bold; animation: blink 1s infinite;">Acontecendo agora!</p>` : ""}
             <p>${data}</p>
             <p>${horario}</p>
             ${descricao ? `<p>${descricao}</p>` : "<p>Nenhuma descrição informada.</p>"}
@@ -516,7 +518,7 @@ body {
           <img src="${thumb || 'semimagem.png'}" alt="">
           <div class="card-content">
             <h3>${nome}</h3>
-            ${acontecendo ? `<p class="ao-vivo">Acontecendo agora!</p>` : ""}
+            ${acontecendo ? `<p style="color:#4CAF50; font-weight:bold; animation: blink 1s infinite;">Acontecendo agora!</p>` : ""}
             <p>${data}</p>
             <p>${horario}</p>
             ${descricao ? `<p>${descricao}</p>` : "<p>Nenhuma descrição informada.</p>"}
