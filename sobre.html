@@ -285,8 +285,9 @@ body {
 <section>
     <h2>Doações</h2>
   <div class="info-card">
-    <a href="#" onclick="copiarPix(); return false;">Copiar chave PIX</a><br>
-    <span id="msg-copiado" style="display:none; color: #4CAF50; margin-left: 10px;">Copiado!</span>
+    <p>Se você curtiu o projeto e deseja contribuir com qualquer valor:<br> 
+      <a href="#" onclick="copiarPix(); return false;">Copiar chave PIX</a>&nbsp;
+      <span id="msg-copiado" style="display:none; color: #4CAF50; margin-left: 10px;">Copiado!</span>
       <br><br>
       <strong>Agradecimentos:</strong><br>
       Carlos Eduardo
@@ -303,6 +304,18 @@ body {
       <a href="index.html" target="">Home</a>
     </p>
   </footer>
+  
+  <script>
+    function copiarPix() {
+  const chave = "08506287766";
+
+  navigator.clipboard.writeText(chave).then(() => {
+    const el = document.getElementById("msg-copiado");
+    el.style.display = "block";
+    setTimeout(() => el.style.display = "none", 2000);
+  });
+}
+  </script>
 
   </body>
 </html>
