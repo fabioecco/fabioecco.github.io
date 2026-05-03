@@ -426,7 +426,6 @@ body {
       header: true,
       skipEmptyLines: true
     });
-      const acontecendo = estaAcontecendoAgora(l.dataObj, horario);
 
     // Função para converter DD/MM/AAAA em Date
   function parseData(dataStr) {
@@ -472,6 +471,7 @@ body {
         if (!data) return;
         if (!horario) return;
         if (!local) return;
+        const acontecendo = estaAcontecendoAgora(l.dataObj, horario);
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
@@ -497,7 +497,6 @@ body {
       header: true,
       skipEmptyLines: true
     });
-      const acontecendo = encontroAcontecendoAgora(data, horario);
       const dados = linhas.data.sort((a, b) => {
       return (a.nome || "").localeCompare(b.nome || "", "pt-BR", { sensitivity: "base" });
     });
@@ -510,6 +509,7 @@ body {
         if (!data) return;
         if (!horario) return;
         if (!local) return;
+        const acontecendo = encontroAcontecendoAgora(data, horario);
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
