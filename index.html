@@ -227,6 +227,13 @@ body {
   filter: none;
   opacity: 1;
 }
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
   </style>
 </head>
 <body>
@@ -250,13 +257,15 @@ body {
   <section id="encontros">
     <h2>Encontros de Playtest</h2>
     <div class="grid" id="lista-encontros"></div>
-    <div style="width:100%; background:#1f1f1f; border-top:1px solid #333; margin-top:1.5rem; padding:0.8rem 1rem; box-sizing:border-box; text-align:center; color:#ccc; font-size:0.9rem;">
-  Participe também da <a href="https://discord.gg/5dN33M4xbd" target="_blank" style="color:#ff6600; text-decoration:none; font-weight:bold;">Oficina do Playtest Online</a> 
-  pelo Discord. Segundas de 20:30h às 22:30h e Quartas de 21h às 23h.
+    <div id="encontro-opon" style="width:100%; background:#1f1f1f; border-top:1px solid #333; margin-top:1.5rem; padding:0.8rem 1rem; box-sizing:border-box; text-align:center; color:#ccc; font-size:0.9rem;">
+    <p><a href="https://discord.gg/5dN33M4xbd" target="_blank" style="color:#ff6600; text-decoration:none; font-weight:bold;">Oficina do Playtest Online</a></p>
+    <p class="ao-vivo" style="display:none; color:#4CAF50; font-weight:bold; animation: blink 1.5s infinite;">Acontecendo agora!</p>
+    <p>Grupo de Playtest pelo Discord. Segundas de 20:30h às 22:30h e Quartas de 21h às 23h.</p>
     </div>
-    <div style="width:100%; background:#1f1f1f; border-top:1px solid #333; margin-top:1.5rem; padding:0.8rem 1rem; box-sizing:border-box; text-align:center; color:#ccc; font-size:0.9rem;">
-  Conheça a <a href="https://www.instagram.com/oficinadasligadas/" target="_blank" style="color:#ff6600; text-decoration:none; font-weight:bold;">Oficina das Ligadas</a>, 
-  um grupo de Playtest on-line de jogos de tabuleiro exclusivo para mulheres! Segundas de 20h às 22h.
+    <div id="encontro-ligadas" style="width:100%; background:#1f1f1f; border-top:1px solid #333; margin-top:1.5rem; padding:0.8rem 1rem; box-sizing:border-box; text-align:center; color:#ccc; font-size:0.9rem;">
+    <p><a href="https://www.instagram.com/oficinadasligadas/" target="_blank" style="color:#ff6600; text-decoration:none; font-weight:bold;">Oficina das Ligadas</a></p>
+    <p class="ao-vivo" style="display:none; color:#4CAF50; font-weight:bold; animation: blink 1.5s infinite;">Acontecendo agora!</p>
+    <p>Grupo de Playtest on-line de jogos de tabuleiro exclusivo para mulheres! Segundas de 20h às 22h.</p>
     </div>
   </section>
 
@@ -304,7 +313,7 @@ body {
     const sheetFinanciamento = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpP-CQFhmj-0XH7Pp4aUalXf44js1xbXAcZjnmJk1lQRdSyLVYEU6kIZEQ5sv-hEcdJ-BAiXBnDH0W/pub?output=csv";
     const sheetEventos = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTTh7iBk8uRDDD1iLaG2q4PauQCQSkosEnk-7QRuE4kIh6IPlBZM_e0gKBzS-tXdtw1Es0bjygjp8Uw/pub?output=csv";
 
-    // Cards de Prototipos e Financiamentos puxando da planilha/CSV
+    // ===== Cards de Prototipos e Financiamentos puxando da planilha/CSV =====
     async function carregarCSV(url, containerId) {
       const res = await fetch(url);
       const text = await res.text();
@@ -321,14 +330,15 @@ body {
       dados.forEach(l => {
       const { thumb, nome, autor, descricao, link, maisdetalhes, email, imagemgrande, video } = l;
         if (!nome) return;
+        if (!autor) return;
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
           <img src="${thumb || 'prototipo.png'}" alt="">
           <div class="card-content">
             <h3>${nome}</h3>
-            ${autor ? `<p>${autor}</p>` : ""}
-            <p>${descricao || ""}</p>
+            <p>${autor}</p>
+            ${descricao ? `<p>${descricao}</p>` : "<p>Nenhuma descrição informada.</p>"}
             <a href="#" class="btn-detalhes">Ver detalhes</a>
           </div>`;
           card.querySelector(".btn-detalhes").addEventListener("click", (e) => {
@@ -339,7 +349,80 @@ body {
       });
     }
 
-    // Cards de Eventos puxando da planilha/CSV
+    // Formatar string de data e horario vindo da planilha
+    function extrairHorario(horarioStr) {
+    if (!horarioStr) return null;
+
+    const numeros = horarioStr.match(/\d{1,2}(:\d{2})?/g);
+    if (!numeros || numeros.length < 2) return null;
+
+    function parse(h) {
+      const [hora, min] = h.split(":");
+      return {
+        h: parseInt(hora),
+        m: parseInt(min || "0")
+      };
+    }
+
+    return {
+      inicio: parse(numeros[0]),
+      fim: parse(numeros[1])
+    };
+  }
+
+    // Mostrar o Acontecendo Agora
+    function estaAcontecendoAgora(dataObj, horarioStr) {
+    if (!dataObj) return false;
+
+    const horario = extrairHorario(horarioStr);
+    if (!horario) return false;
+
+    const agora = new Date();
+
+    const inicio = new Date(dataObj);
+    inicio.setHours(horario.inicio.h, horario.inicio.m, 0, 0);
+
+    const fim = new Date(dataObj);
+    fim.setHours(horario.fim.h, horario.fim.m, 0, 0);
+
+    return agora >= inicio && agora <= fim;
+  }
+
+    // Formatar Dia da Semana (segunda, terça, quarta...)
+    function encontroAcontecendoAgora(dataStr, horarioStr) {
+    if (!dataStr) return false;
+
+    const horario = extrairHorario(horarioStr);
+    if (!horario) return false;
+
+    const agora = new Date();
+    const hojeDia = agora.getDay();
+
+    const diasSemana = {
+      domingo: 0,
+      segunda: 1,
+      terca: 2,
+      terça: 2,
+      quarta: 3,
+      quinta: 4,
+      sexta: 5,
+      sabado: 6,
+      sábado: 6
+    };
+
+    const diaTexto = dataStr.toLowerCase().replace(/s$/, "").trim();
+    const diaNumero = diasSemana[diaTexto];
+
+    if (diaNumero !== hojeDia) return false;
+
+    const agoraMin = agora.getHours() * 60 + agora.getMinutes();
+    const inicioMin = horario.inicio.h * 60 + horario.inicio.m;
+    const fimMin = horario.fim.h * 60 + horario.fim.m;
+
+    return agoraMin >= inicioMin && agoraMin <= fimMin;
+  }
+
+    // ===== Cards de Eventos puxando da planilha/CSV =====
     async function carregarCSVe(url, containerId) {
       const res = await fetch(url);
       const text = await res.text();
@@ -367,6 +450,7 @@ body {
     })
     .sort((a, b) => {
     const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
 
     const aPassado = a.dataObj && a.dataObj < hoje;
     const bPassado = b.dataObj && b.dataObj < hoje;
@@ -383,28 +467,33 @@ body {
       container.innerHTML = "";
 
       const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
 
       dados.forEach(l => {
       const { thumb, nome, data, horario, local, descricao, link } = l;
         if (!nome) return;
+        if (!data) return;
+        if (!horario) return;
+        if (!local) return;
+        const acontecendo = estaAcontecendoAgora(l.dataObj, horario);
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
-          <img src="${thumb || 'evento.png'}" 
-     style="${l.dataObj && l.dataObj < hoje ? 'filter: grayscale(100%); opacity: 0.6;' : ''}">
+          <img src="${thumb || 'evento.png'}" style="${l.dataObj && l.dataObj < hoje ? 'filter: grayscale(100%); opacity: 0.6;' : ''}" alt="">
           <div class="card-content">
             <h3>${nome}</h3>
-            ${data ? `<p>${data}` : "<p>10 hs"}
-            ${horario ? `${horario}</p>` : "</p>"}
-            <p>${descricao || ""}</p>
-            ${local ? `<p>${local}</p>` : ""}
-            ${link ? `<a href="${link}" target="_blank">Ver mais</a>` : ""}
+            ${acontecendo ? `<p style="color:#4CAF50; font-weight:bold; animation: blink 1.5s infinite;">Acontecendo agora!</p>` : ""}
+            <p>${data}</p>
+            <p>${horario}</p>
+            ${descricao ? `<p>${descricao}</p>` : "<p>Nenhuma descrição informada.</p>"}
+            <p>${local}</p>
+            ${link ? `<a href="${link}" target="_blank" rel="noopener noreferrer">Ver mais</a>` : "<a href=''>Ver mais</a>"}
           </div>`;
         container.appendChild(card);
       });
     }
 
-    // Cards de Encontros de Playtest puxando da planilha/CSV
+    // ===== Cards de Encontros de Playtest puxando da planilha/CSV =====
     async function carregarCSVp(url, containerId) {
       const res = await fetch(url);
       const text = await res.text();
@@ -421,17 +510,22 @@ body {
       dados.forEach(l => {
       const { thumb, nome, data, horario, local, descricao, link } = l;
         if (!nome) return;
+        if (!data) return;
+        if (!horario) return;
+        if (!local) return;
+        const acontecendo = encontroAcontecendoAgora(data, horario);
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
           <img src="${thumb || 'semimagem.png'}" alt="">
           <div class="card-content">
             <h3>${nome}</h3>
-            ${data ? `<p>${data}` : "<p>10 hs"}
-            ${horario ? `${horario}</p>` : "</p>"}
-            <p>${descricao || ""}</p>
-            ${local ? `<p>${local}</p>` : ""}
-            ${link ? `<a href="${link}" target="_blank">Ver mais</a>` : ""}
+            ${acontecendo ? `<p style="color:#4CAF50; font-weight:bold; animation: blink 1.5s infinite;">Acontecendo agora!</p>` : ""}
+            <p>${data}</p>
+            <p>${horario}</p>
+            ${descricao ? `<p>${descricao}</p>` : "<p>Nenhuma descrição informada.</p>"}
+            <p>${local}</p>
+            ${link ? `<a href="${link}" target="_blank" rel="noopener noreferrer">Ver no Mapa</a>` : "<a href=''>Ver no Mapa</a>"}
           </div>`;
         container.appendChild(card);
       });
@@ -451,6 +545,21 @@ body {
         card.style.display = texto.includes(termo) ? "block" : "none";
       });
     }
+
+    // Acontecendo Agora para OPON e Ligadas
+    function atualizarEncontrosFixos() {
+    const opon = encontroAcontecendoAgora("segunda", "20:30 às 22:30") ||
+                    encontroAcontecendoAgora("quarta", "21h às 23h");
+    const ligadas = encontroAcontecendoAgora("segunda", "20h às 22h");
+    if (opon) {
+      document.querySelector("#encontro-opon .ao-vivo").style.display = "block";
+    }
+    if (ligadas) {
+      document.querySelector("#encontro-ligadas .ao-vivo").style.display = "block";
+    }
+  }
+
+    window.addEventListener("DOMContentLoaded", atualizarEncontrosFixos);
 
     // Modal Overlay
     function abrirModal(l) {
