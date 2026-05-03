@@ -549,7 +549,7 @@ body {
     // Acontecendo Agora para OPON e Ligadas
     function atualizarEncontrosFixos() {
     const opon = encontroAcontecendoAgora("segunda", "20:30 às 22:30") ||
-                    encontroAcontecendoAgora("domingos", "21h às 23h");
+                    encontroAcontecendoAgora("domingos", "20h às 23h");
     const ligadas = encontroAcontecendoAgora("domingos", "20h às 22h");
     if (opon) {
       document.querySelector("#encontro-opon .ao-vivo").style.display = "block";
