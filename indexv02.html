@@ -257,15 +257,15 @@ body {
   <section id="encontros">
     <h2>Encontros de Playtest</h2>
     <div class="grid" id="lista-encontros"></div>
-    <div id="encontro-opon" style="width:100%; background:#1f1f1f; border-top:1px solid #333; margin-top:1.5rem; padding:0.8rem 1rem; box-sizing:border-box; text-align:center; color:#ccc; font-size:0.9rem;">
-    <p><a href="https://discord.gg/5dN33M4xbd" target="_blank" style="color:#ff6600; text-decoration:none; font-weight:bold;">Oficina do Playtest Online</a></p>
+    <div id="encontro-opon" style="width:100%; background:#1f1f1f; border-top:1px solid #333; margin-top:1.5rem; padding:0.8rem 1rem; box-sizing:border-box; border-radius: 8px; text-align:center; color:#ccc; font-size:0.9rem;">
+    <p><a href="https://discord.gg/5dN33M4xbd" target="_blank" style="font-size: 1.6rem; color:#ff6600; text-decoration:none; font-weight:bold;">Oficina do Playtest Online</a></p>
     <p class="ao-vivo" style="display:none; color:#4CAF50; font-weight:bold; animation: blink 1.5s infinite;">Acontecendo agora!</p>
     <p>Grupo de Playtest pelo Discord. Segundas de 20:30h às 22:30h e Quartas de 21h às 23h.</p>
     </div>
-    <div id="encontro-ligadas" style="width:100%; background:#1f1f1f; border-top:1px solid #333; margin-top:1.5rem; padding:0.8rem 1rem; box-sizing:border-box; text-align:center; color:#ccc; font-size:0.9rem;">
-    <p><a href="https://www.instagram.com/oficinadasligadas/" target="_blank" style="color:#ff6600; text-decoration:none; font-weight:bold;">Oficina das Ligadas</a></p>
+    <div id="encontro-ligadas" style="width:100%; background:#1f1f1f; border-top:1px solid #333; margin-top:1.5rem; padding:0.8rem 1rem; box-sizing:border-box; border-radius: 8px; text-align:center; color:#ccc; font-size:0.9rem;">
+    <p><a href="https://www.instagram.com/oficinadasligadas/" target="_blank" style="font-size: 1.6rem; color:#ff6600; text-decoration:none; font-weight:bold;">Oficina das Ligadas</a></p>
     <p class="ao-vivo" style="display:none; color:#4CAF50; font-weight:bold; animation: blink 1.5s infinite;">Acontecendo agora!</p>
-    <p>Grupo de Playtest on-line de jogos de tabuleiro exclusivo para mulheres! Segundas de 20h às 22h.</p>
+    <p>Grupo de Playtest online exclusivo para mulheres! Segundas de 20h às 22h.</p>
     </div>
   </section>
 
@@ -487,7 +487,7 @@ body {
             <p>${horario}</p>
             ${descricao ? `<p>${descricao}</p>` : "<p>Nenhuma descrição informada.</p>"}
             <p>${local}</p>
-            ${link ? `<a href="${link}" target="_blank" rel="noopener noreferrer">Ver mais</a>` : "<a href=''>Ver mais</a>"}
+            ${link ? `<a href="${link}" target="_blank">Ver mais</a>` : "<a href=''>Ver mais</a>"}
           </div>`;
         container.appendChild(card);
       });
@@ -525,7 +525,7 @@ body {
             <p>${horario}</p>
             ${descricao ? `<p>${descricao}</p>` : "<p>Nenhuma descrição informada.</p>"}
             <p>${local}</p>
-            ${link ? `<a href="${link}" target="_blank" rel="noopener noreferrer">Ver no Mapa</a>` : "<a href=''>Ver no Mapa</a>"}
+            ${link ? `<a href="${link}" target="_blank">Ver no Mapa</a>` : "<a href=''>Ver no Mapa</a>"}
           </div>`;
         container.appendChild(card);
       });
@@ -549,8 +549,8 @@ body {
     // Acontecendo Agora para OPON e Ligadas
     function atualizarEncontrosFixos() {
     const opon = encontroAcontecendoAgora("segunda", "20:30 às 22:30") ||
-                    encontroAcontecendoAgora("domingos", "20h às 23h");
-    const ligadas = encontroAcontecendoAgora("domingos", "20h às 22h");
+                    encontroAcontecendoAgora("quarta", "21h às 23h");
+    const ligadas = encontroAcontecendoAgora("segunda", "20h às 22h");
     if (opon) {
       document.querySelector("#encontro-opon .ao-vivo").style.display = "block";
     }
