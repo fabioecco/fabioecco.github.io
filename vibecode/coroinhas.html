@@ -1,0 +1,1362 @@
+<title>Crown</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  /* Layout: coluna única de mesa. Status, mercado, jogadas, troca e mão.
+     Painéis de cartas: só aparecem os materiais que existem, em fluxo contínuo. O Mercado reserva espaço
+     para 8 cartas, então raramente muda de altura. No celular a Troca vira uma barra fixa no rodapé. */
+  :root {
+    color-scheme: dark;
+    --felt: #0d1822;
+    --felt-hi: #17323f;
+    --panel: #142431;
+    --panel-2: #1a3040;
+    --line: #2b4559;
+    --ink: #e9eff4;
+    --ink-2: #a6b9c8;
+    --ink-3: #7490a3;
+    --gold: #e8b94a;
+    --gold-ink: #2b1d02;
+    --good: #56d6a0;
+    --bad: #ff8a98;
+    --font-display: 'Cinzel', Georgia, 'Times New Roman', serif;
+    --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --cols: 4;          /* cartas por linha nos painéis Mercado e Sua mão (3 no celular) */
+    --card-max: 116px;  /* largura máxima de uma carta */
+  }
+  @media (max-width: 559px) { :root { --cols: 3; } }
+
+  [data-m="obsidiana"] { --c1: #403866; --c2: #0f0c1d; --edge: #8478d0; --face-ink: #efeaff; }
+  [data-m="bronze"]    { --c1: #d4955a; --c2: #8a4f26; --edge: #f0b983; --face-ink: #fff3e4; }
+  [data-m="prata"]     { --c1: #eef2f6; --c2: #a4afbb; --edge: #ffffff; --face-ink: #1b2430; }
+  [data-m="ouro"]      { --c1: #f7d460; --c2: #c58e16; --edge: #ffe69a; --face-ink: #3a2700; }
+  [data-m="turquesa"]  { --c1: #55dccd; --c2: #12877f; --edge: #9ff0e6; --face-ink: #03312d; }
+  [data-m="ametista"]  { --c1: #b682f2; --c2: #6a35b5; --edge: #d6b6ff; --face-ink: #ffffff; }
+  [data-m="safira"]    { --c1: #5389ff; --c2: #1a3fae; --edge: #9bbcff; --face-ink: #ffffff; }
+  [data-m="esmeralda"] { --c1: #43d98a; --c2: #0f7a42; --edge: #98f0c1; --face-ink: #03281a; }
+  [data-m="rubi"]      { --c1: #ff627f; --c2: #aa1034; --edge: #ffa3b4; --face-ink: #ffffff; }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background-color: var(--felt);
+    background-image: radial-gradient(1100px 520px at 50% -8%, var(--felt-hi), transparent 72%);
+    background-repeat: no-repeat;
+    color: var(--ink);
+    font: 15px/1.5 var(--font-ui);
+    padding-block: 14px 36px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    min-height: 100%;
+  }
+  .wrap { max-width: 980px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+  .stack { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+  h1, h2, h3 { margin: 0; text-wrap: balance; }
+  button, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+  /* Cabeçalho */
+  .top { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
+  .brand { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; }
+  .brand h1 { font: 700 30px/1 var(--font-display); letter-spacing: .12em; color: var(--gold); }
+  .brand p { margin: 0; color: var(--ink-2); font-size: 14px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .field { display: flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 13px; }
+  select {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 6px 8px; min-height: 36px;
+  }
+  .btn {
+    appearance: none; cursor: pointer; min-height: 40px; padding: 8px 16px;
+    border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2);
+    font-weight: 600; font-size: 14px; transition: background .15s;
+  }
+  .controls .btn { min-height: 36px; padding: 6px 14px; }
+  .btn:hover:not(:disabled) { background: #21394b; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.primary { background: var(--gold); color: var(--gold-ink); border-color: var(--gold); }
+  .btn.primary:hover:not(:disabled) { background: #f2c761; }
+  .btn.ghost { background: transparent; }
+  .icon-btn { width: 36px; padding: 0 !important; display: inline-grid; place-items: center; }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .sound[aria-pressed="true"] .off, .sound[aria-pressed="false"] .on { display: none; }
+  .sound[aria-pressed="false"] { color: var(--ink-3); }
+
+  /* Status: jogadores e uma única linha com monte, mercado e vez */
+  .status { display: flex; flex-direction: column; gap: 8px; }
+  .players { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pl {
+    display: flex; gap: 8px; align-items: baseline; padding: 5px 12px; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink-2); font-size: 14px;
+  }
+  .pl b { color: var(--ink); font-weight: 600; }
+  .pl.active { border-color: var(--gold); color: var(--ink); box-shadow: 0 0 0 1px var(--gold) inset; }
+  .pl .pc { font-variant-numeric: tabular-nums; }
+  .turnrow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 32px; }
+  .meta { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .meta b { color: var(--ink); }
+  .sep { color: var(--ink-3); }
+  .turnmsg { font-weight: 500; }
+  .turnmsg .hint { color: var(--ink-2); font-weight: 400; }
+  .skip { min-height: 28px !important; padding: 2px 12px !important; font-size: 13px; }
+
+  /* Painéis */
+  .panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    padding: 12px 16px 14px;
+  }
+  .panel > h2 {
+    font: 600 13px/1 var(--font-ui); letter-spacing: .14em; text-transform: uppercase;
+    color: var(--ink-2); margin-bottom: 10px; display: flex; gap: 10px; align-items: baseline; justify-content: space-between;
+  }
+  .panel > h2 small { font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--ink-3); font-size: 13px; }
+  .waiting .ctl { opacity: .4; }
+
+  /* Cartas: grade fixa, uma posição por material */
+  .tiles { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 12px 8px; }
+  .slot { container-type: inline-size; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 8px; }
+  .slot.pad { visibility: hidden; pointer-events: none; } /* só reserva altura no fim do Mercado */
+  .tile {
+    --tw: min(100cqw, var(--card-max));
+    appearance: none; border: 0; background: none; padding: 0; cursor: pointer; position: relative; display: block;
+    width: var(--tw); aspect-ratio: 3 / 4; border-radius: 12px; transition: transform .15s;
+  }
+  .tile:hover:not(:disabled) { transform: translateY(-3px); }
+  .tile:disabled { cursor: default; }
+  .slot.on .tile { transform: translateY(-6px); }
+  .slot.on .face { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold), 0 12px 22px rgba(0,0,0,.45); }
+  .layer {
+    position: absolute; inset: 0; border-radius: 12px; background: var(--c2);
+    border: 1.5px solid var(--edge); opacity: .85;
+  }
+  .l1 { transform: translate(calc(var(--tw) * .035), calc(var(--tw) * -.035)) rotate(2deg); }
+  .l2 { transform: translate(calc(var(--tw) * .07), calc(var(--tw) * -.07)) rotate(4deg); opacity: .6; }
+  .face {
+    position: absolute; inset: 0; border-radius: 12px; overflow: hidden;
+    background: linear-gradient(150deg, var(--c1), var(--c2));
+    border: 1.5px solid var(--edge); color: var(--face-ink);
+    display: grid; grid-template-rows: auto 1fr auto; padding: calc(var(--tw) * .08);
+    text-align: left; box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 8px 16px rgba(0,0,0,.35);
+  }
+  .face::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(115deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 38%);
+  }
+  .face .row { display: flex; justify-content: space-between; align-items: flex-start; }
+  .val { font: 700 calc(var(--tw) * .28)/1 var(--font-display); font-variant-numeric: tabular-nums; }
+  .kind { width: calc(var(--tw) * .2); height: calc(var(--tw) * .2); fill: currentColor; opacity: .9; }
+  .mark { width: 54%; height: auto; place-self: center; fill: currentColor; opacity: .26; }
+  .foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 4px; }
+  .nm { font: 700 calc(var(--tw) * .105)/1.1 var(--font-ui); letter-spacing: .03em; text-transform: uppercase; white-space: nowrap; }
+  .tot { font: 700 calc(var(--tw) * .15)/1 var(--font-ui); opacity: .5; font-variant-numeric: tabular-nums; }
+  .pick {
+    position: absolute; font: 700 12px/1 var(--font-ui); border-radius: 999px; padding: 4px 8px;
+    font-variant-numeric: tabular-nums; z-index: 2;
+    left: -6px; top: -6px; background: var(--gold); color: var(--gold-ink); min-width: 24px; text-align: center;
+  }
+  .pick[hidden] { display: none; }
+  .slot.bad .pick { background: var(--bad); color: #3a0510; }
+  .slot.bad .face { border-color: var(--bad); }
+
+  /* Controle sob a carta: − contagem + */
+  .ctl { display: flex; align-items: center; justify-content: space-between; gap: 2px; width: min(100cqw, var(--card-max)); }
+  .ctl button {
+    appearance: none; cursor: pointer; flex: none; width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid var(--line); background: var(--panel-2); font-size: 18px; line-height: 1; font-weight: 600;
+  }
+  .ctl button:hover:not(:disabled) { background: #26445a; }
+  .ctl button:disabled { opacity: .3; cursor: not-allowed; }
+  .cnt { display: inline-flex; align-items: center; gap: 3px; min-width: 0; font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .cnt .n { font-weight: 600; color: var(--ink); }
+  .ci { display: none; width: 11px; height: 11px; fill: var(--gold); flex: none; }
+  .slot.incrown .ci { display: inline-block; }
+  .slot.on .cnt .n { color: var(--gold); font-weight: 700; }
+  @container (max-width: 104px) {
+    .ctl button { width: 28px; height: 28px; font-size: 16px; }
+    .cnt { font-size: 12px; }
+  }
+
+  /* Destaques de ganho e perda. Terminam sozinhos; o próximo desenho da tela limpa o resto. */
+  .slot.gain .face { animation: glow-up 1.7s ease-out 1; }
+  .slot.loss .face { animation: glow-down 1.7s ease-out 1; }
+  .slot.ghost .face { border-style: dashed; filter: saturate(.4); opacity: .55; }
+  .slot.ghost .ctl { visibility: hidden; }
+  @keyframes glow-up {
+    0% { box-shadow: 0 0 0 3px var(--good), 0 0 26px rgba(86,214,160,.75); transform: translateY(-8px) scale(1.05); }
+    55% { box-shadow: 0 0 0 3px var(--good), 0 0 18px rgba(86,214,160,.45); transform: none; }
+    100% { box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 8px 16px rgba(0,0,0,.35); transform: none; }
+  }
+  @keyframes glow-down {
+    0% { box-shadow: 0 0 0 3px var(--bad), 0 0 26px rgba(255,138,152,.7); transform: scale(.96); }
+    100% { box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 8px 16px rgba(0,0,0,.35); transform: none; }
+  }
+  .chip-d {
+    position: absolute; right: -8px; top: -10px; z-index: 3; pointer-events: none;
+    font: 700 13px/1 var(--font-ui); padding: 5px 9px; border-radius: 999px;
+    font-variant-numeric: tabular-nums; animation: chip-rise 1.9s ease-out forwards;
+  }
+  .chip-d.up { background: var(--good); color: #052217; }
+  .chip-d.down { background: var(--bad); color: #3a0510; }
+  @keyframes chip-rise {
+    0% { opacity: 0; transform: translateY(8px) scale(.6); }
+    14% { opacity: 1; transform: translateY(0) scale(1.12); }
+    24% { transform: scale(1); }
+    78% { opacity: 1; transform: translateY(-4px); }
+    100% { opacity: 0; transform: translateY(-14px); }
+  }
+  .slot.pop .tile { animation: pop .22s ease-out 1; }
+  @keyframes pop { 0% { scale: .94; } 60% { scale: 1.05; } 100% { scale: 1; } }
+
+  /* Jogadas da rodada: uma linha fixa por jogador, então a altura não muda durante a rodada */
+  .feedlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .fe {
+    position: relative; display: grid; grid-template-columns: minmax(150px, 230px) 1fr; gap: 4px 14px; align-items: center;
+    padding: 5px 12px; min-height: 42px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2);
+  }
+  .fe.me { border-color: #3c5f78; }
+  .fe.wait { background: transparent; border-style: dashed; }
+  .fe.wait .who { color: var(--ink-3); font-weight: 500; }
+  .fe.fresh { animation: fresh 2.2s ease-out 1; }
+  @keyframes fresh { 0% { background: #3a3a22; border-color: var(--gold); } 100% { background: var(--panel-2); } }
+  .fe .who { font-weight: 600; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mobonly { display: none; }
+  .field { position: relative; }
+  .fe .deal { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; min-width: 0; color: var(--ink-2); }
+  .fe .lbl { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+  .fe .ar { color: var(--ink-3); }
+  .fe .none { color: var(--ink-3); }
+  .fchip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 6px; border-radius: 999px;
+    background: var(--panel); border: 1px solid var(--line); color: var(--ink); font-size: 13.5px; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .fchip .sw, .sw { width: 12px; height: 12px; border-radius: 4px; background: linear-gradient(150deg, var(--c1), var(--c2)); border: 1px solid var(--edge); }
+
+  /* Troca */
+  .trade { background: var(--panel-2); }
+  .tradegrid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
+  .side {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; min-height: 72px;
+    border: 1px dashed var(--line); border-radius: 12px; padding: 8px 14px;
+  }
+  .side .txt { min-width: 0; }
+  .side h3 { font: 600 12px/1 var(--font-ui); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 6px; }
+  .side .what { margin: 0; font-weight: 600; overflow-wrap: anywhere; min-height: 1.5em; }
+  .big { flex: none; text-align: center; min-width: 54px; }
+  .big b { display: block; font: 700 36px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+  .big .cap { display: block; margin-top: 3px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+  .big .bonus { color: var(--good); }
+  .arrow { font-size: 22px; color: var(--ink-3); }
+  .infoline { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 10px 0 0; min-height: 24px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .infoline b { color: var(--ink); }
+  .msg.ok { color: var(--good); }
+  .msg.err { color: var(--bad); }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+  .crownline { margin: 10px 0 0; color: var(--ink-2); min-height: 24px; }
+  .crownline b { color: var(--ink); }
+
+  /* Resultado */
+  .result h2 { font: 700 26px/1.1 var(--font-display); letter-spacing: .06em; color: var(--gold); }
+  .verdict { margin: 8px 0 18px; font-size: 18px; font-weight: 600; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+  .pcard { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--panel-2); min-width: 0; }
+  .pcard.win { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+  .pcard h3 { font: 600 16px/1.2 var(--font-ui); display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .badge { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--gold-ink); background: var(--gold); padding: 3px 8px; border-radius: 999px; }
+  .parts { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .parts li { display: grid; grid-template-columns: 14px 1fr auto; gap: 10px; align-items: center; }
+  .parts .sw { width: 14px; height: 14px; }
+  .parts .why { color: var(--ink-2); font-size: 13px; display: block; }
+  .parts .p { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .total b { font: 700 30px/1 var(--font-display); color: var(--gold); font-variant-numeric: tabular-nums; }
+  .handline { margin: 10px 0 0; color: var(--ink-3); font-size: 12.5px; }
+  .result .btn { margin-top: 18px; }
+
+  /* Histórico e regras */
+  .log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; color: var(--ink-2); font-size: 14px; }
+  .log li:first-child { color: var(--ink); }
+  details.rules { border: 1px solid var(--line); border-radius: 16px; background: var(--panel); padding: 0 16px; }
+  details.rules summary { cursor: pointer; padding: 12px 0; font-weight: 600; list-style-position: inside; }
+  details.rules[open] summary { border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+  .rules .body { padding-bottom: 14px; max-width: 70ch; color: var(--ink-2); }
+  .rules h3 { font: 600 14px/1.3 var(--font-ui); color: var(--ink); margin: 14px 0 4px; }
+  .rules p, .rules ul { margin: 0 0 6px; }
+  .rules ul { padding-left: 20px; }
+  .rules table { border-collapse: collapse; margin: 6px 0 10px; font-variant-numeric: tabular-nums; }
+  .rules th, .rules td { text-align: left; padding: 4px 14px 4px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .tablewrap { overflow-x: auto; }
+
+  @media (max-width: 559px) {
+    .brand h1 { font-size: 26px; }
+    .brand p { display: none; }
+    .mobonly { display: inline; }
+    .deskonly { display: none; }
+    .field .lt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .fe .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .panel { padding: 10px 12px 12px; }
+    .tiles { gap: 10px 6px; }
+    .fe { grid-template-columns: 1fr; padding: 6px 12px; min-height: 80px; align-content: center; }
+    .turnrow { gap: 4px 6px; }
+    .skip { padding: 2px 10px !important; }
+
+    /* Troca: barra fixa no rodapé, sempre à mão enquanto você rola entre Mercado e Mão */
+    body { padding-bottom: calc(var(--bar-h, 190px) + 16px); }
+    .trade {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; margin: 0;
+      border-radius: 16px 16px 0 0; border-bottom: 0;
+      padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+      box-shadow: 0 -10px 28px rgba(0,0,0,.5);
+    }
+    .trade > h2 { position: absolute; width: 1px; height: 1px; margin: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .tradegrid { grid-template-columns: 1fr auto 1fr; gap: 6px; }
+    .arrow { font-size: 16px; }
+    .side { min-height: 0; padding: 5px 10px; gap: 6px; }
+    .side .txt { flex: 1; }
+    .side h3 { font-size: 10px; margin-bottom: 2px; letter-spacing: .1em; }
+    .side .what { min-height: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+    .big { min-width: 40px; }
+    .big b { font-size: 26px; }
+    .big .cap { font-size: 9px; margin-top: 1px; letter-spacing: .06em; }
+    .infoline { margin-top: 6px; min-height: 38px; font-size: 13px; gap: 0 10px; }
+    .actions { display: grid; grid-template-columns: 1.4fr 1fr 1.2fr; gap: 6px; margin-top: 6px; }
+    .actions .btn { min-height: 40px; padding: 6px 6px; font-size: 13px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .slot.gain .face, .slot.loss .face, .slot.pop .tile, .fe.fresh { animation: none; }
+    .slot.gain .face { box-shadow: 0 0 0 3px var(--good); }
+    .slot.loss .face { box-shadow: 0 0 0 3px var(--bad); }
+    .chip-d { animation: chip-fade 1.9s linear forwards; }
+    @keyframes chip-fade { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
+    .tile, .btn { transition: none; }
+  }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="g-crown" viewBox="0 0 24 24"><path d="M2.5 8l4.6 4.2L12 4l4.9 8.2L21.5 8 20 19H4z"/></symbol>
+  <symbol id="g-gem" viewBox="0 0 24 24"><path d="M6.2 3h11.6L22 9.2 12 21.5 2 9.2z"/></symbol>
+  <symbol id="g-both" viewBox="0 0 24 24"><path d="M12 2l8.5 4.8v10.4L12 22l-8.5-4.8V6.8z"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>CROWN</h1>
+      <p>Troque cartas de recursos e monte a melhor coroa.</p>
+    </div>
+    <div class="controls">
+      <label class="field" for="bots"><span class="lt">Adversários</span>
+        <select id="bots">
+          <option value="1">1 bot</option>
+          <option value="2">2 bots</option>
+          <option value="3">3 bots</option>
+        </select>
+      </label>
+      <label class="field" for="level"><span class="lt">Nível</span>
+        <select id="level">
+          <option value="basico">Básico</option>
+          <option value="esperto" selected>Esperto</option>
+        </select>
+      </label>
+      <button id="sound" class="btn ghost icon-btn sound" type="button" aria-pressed="true" aria-label="Som ligado" title="Som ligado">
+        <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+        <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor"/><path d="M22 9l-6 6M16 9l6 6"/></svg>
+      </button>
+      <button id="newgame" class="btn ghost" type="button">Nova<span class="deskonly"> partida</span></button>
+    </div>
+  </header>
+
+  <section class="status" aria-label="Situação da partida">
+    <div id="players" class="players"></div>
+    <div class="turnrow">
+      <span id="meta" class="meta"></span>
+      <span class="sep" aria-hidden="true">·</span>
+      <span id="turnmsg" class="turnmsg" aria-live="polite"></span>
+      <button id="skip" class="btn ghost skip" type="button" hidden>Pular<span class="deskonly"> espera</span></button>
+    </div>
+  </section>
+
+  <div id="board" class="stack">
+    <section class="panel" id="marketPanel" aria-labelledby="mh">
+      <h2 id="mh">Mercado <small id="marketCount"></small></h2>
+      <div id="market" class="tiles"></div>
+    </section>
+
+    <section class="panel feed" id="feed" aria-labelledby="fh">
+      <h2 id="fh">Jogadas da rodada <small id="feedNote"></small></h2>
+      <ol id="feedList" class="feedlist"></ol>
+    </section>
+
+    <section class="panel trade" id="trade" aria-labelledby="th">
+      <h2 id="th">Troca</h2>
+      <div class="tradegrid">
+        <div class="side">
+          <div class="txt">
+            <h3>Você entrega</h3>
+            <p class="what" id="giveTxt"></p>
+          </div>
+          <div class="big"><b id="powerNum">0</b><span class="cap" id="powerCap">poder</span></div>
+        </div>
+        <div class="arrow" aria-hidden="true">&rarr;</div>
+        <div class="side">
+          <div class="txt">
+            <h3>Você leva</h3>
+            <p class="what" id="takeTxt"></p>
+          </div>
+          <div class="big"><b id="costNum">0</b><span class="cap">custo</span></div>
+        </div>
+      </div>
+      <p class="infoline"><span id="delta"></span><span id="tradeMsg" class="msg"></span></p>
+      <div class="actions">
+        <button id="confirm" class="btn primary" type="button">Confirmar troca</button>
+        <button id="clear" class="btn ghost" type="button">Limpar<span class="deskonly"> seleção</span></button>
+        <button id="pass" class="btn" type="button">Encerrar turno</button>
+      </div>
+    </section>
+
+    <section class="panel" id="handPanel" aria-labelledby="hh">
+      <h2 id="hh">Sua mão <small id="handCount"></small></h2>
+      <div id="hand" class="tiles"></div>
+      <p id="crownline" class="crownline"></p>
+    </section>
+  </div>
+
+  <section id="result" class="panel result" hidden aria-live="polite"></section>
+
+  <details class="rules">
+    <summary>Histórico</summary>
+    <div class="body"><ol id="log" class="log"></ol></div>
+  </details>
+
+  <details class="rules">
+    <summary>Regras</summary>
+    <div class="body">
+      <h3>Objetivo</h3>
+      <p>Terminar com a coroa de maior pontuação. A coroa usa três materiais diferentes: um de coroa (Obsidiana, Bronze, Prata ou Ouro) e dois de gema (Obsidiana, Turquesa, Ametista, Safira, Esmeralda ou Rubi).</p>
+      <h3>Cartas</h3>
+      <p>O número grande no canto de cima é o valor da carta. O número apagado no canto de baixo é o total de cópias dela no jogo. Na tela aparecem só os materiais que você tem, e as cartas iguais ficam empilhadas, com a quantidade embaixo.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Material</th><th>Tipo</th><th>Valor</th><th>Cartas</th></tr></thead>
+          <tbody id="rulesTable"></tbody>
+        </table>
+      </div>
+      <h3>Preparação</h3>
+      <p>As Obsidianas são divididas igualmente entre os jogadores e formam a mão inicial. As que sobrarem voltam ao baralho. O mercado abre com 14 cartas (2 jogadores), 15 (3) ou 16 (4). O resto forma o monte.</p>
+      <h3>Seu turno</h3>
+      <ul>
+        <li>Você compra 1 carta do monte.</li>
+        <li>Depois pode fazer uma troca com o mercado, se quiser.</li>
+        <li>Na troca, as cartas que você entrega somam o seu poder. As cartas que você leva custam o valor impresso nelas.</li>
+        <li>Não há troco. Se sobrar poder, ele se perde.</li>
+        <li>Se você entregar 2 ou mais cartas e todas forem do mesmo material, cada uma vale +1. Uma carta sozinha não ganha bônus: 1 Obsidiana vale 2, 2 valem 6 (4 + 2), 3 valem 9 (6 + 3). As cartas do mercado nunca ganham bônus.</li>
+        <li>Você não pode levar um material igual a um que está entregando, nem sozinho nem como parte do poder de compra. Exemplo: entregar 1 Obsidiana e 1 Safira para levar 3 Obsidianas não vale. A regra vale para todos os materiais, metais e gemas: não dá para pagar com Bronze para levar Bronze.</li>
+        <li>As cartas que você entrega vão para o mercado.</li>
+        <li>O painel "Jogadas da rodada" mostra o que cada jogador entregou e levou. Ele fica na tela até você jogar de novo.</li>
+      </ul>
+      <h3>Fim da partida: a Coroação</h3>
+      <p>Quando o monte acaba, os jogadores seguem trocando ou passando. Se todos passarem em sequência, a partida termina e cada um monta a melhor coroa possível. Cartas que sobram não valem nada nem tiram pontos.</p>
+      <h3>Pontuação</h3>
+      <p>Cada um dos três materiais da coroa vale o seu valor mais a quantidade de cartas dele que você tem. Exemplo: 3 Ouro, 2 Rubi e 8 Obsidiana somam (5+3) + (6+2) + (2+8) = 26. Em caso de empate, vence quem tem mais cartas na mão.</p>
+    </div>
+  </details>
+</div>
+
+<script>
+/* Crown: regras, estado do jogo e bot. Sem dependências de DOM. */
+(function (root) {
+  'use strict';
+
+  // Valor do Ouro: a tabela diz 5, mas o exemplo de pontuação das regras usa 4.
+  // Se for 4, basta trocar aqui.
+  const OURO_VALOR = 5;
+
+  const MATERIALS = [
+    { id: 'obsidiana', nome: 'Obsidiana', coroa: true,  gema: true,  valor: 2, qtd: 10 },
+    { id: 'bronze',    nome: 'Bronze',    coroa: true,  gema: false, valor: 2, qtd: 9 },
+    { id: 'prata',     nome: 'Prata',     coroa: true,  gema: false, valor: 3, qtd: 7 },
+    { id: 'ouro',      nome: 'Ouro',      coroa: true,  gema: false, valor: OURO_VALOR, qtd: 4 },
+    { id: 'turquesa',  nome: 'Turquesa',  coroa: false, gema: true,  valor: 3, qtd: 8 },
+    { id: 'ametista',  nome: 'Ametista',  coroa: false, gema: true,  valor: 4, qtd: 6 },
+    { id: 'safira',    nome: 'Safira',    coroa: false, gema: true,  valor: 4, qtd: 5 },
+    { id: 'esmeralda', nome: 'Esmeralda', coroa: false, gema: true,  valor: 5, qtd: 3 },
+    { id: 'rubi',      nome: 'Rubi',      coroa: false, gema: true,  valor: 6, qtd: 2 }
+  ];
+  const N = MATERIALS.length;
+  const BY_ID = {};
+  const IDX = {};
+  MATERIALS.forEach((m, i) => { BY_ID[m.id] = m; IDX[m.id] = i; });
+
+  const CROWN_IDX = [];
+  const GEM_IDX = [];
+  MATERIALS.forEach((m, i) => {
+    if (m.coroa) CROWN_IDX.push(i);
+    if (m.gema) GEM_IDX.push(i);
+  });
+  const GEM_PAIRS = [];
+  for (let a = 0; a < GEM_IDX.length; a++) {
+    for (let b = a + 1; b < GEM_IDX.length; b++) GEM_PAIRS.push([GEM_IDX[a], GEM_IDX[b]]);
+  }
+
+  const MAX_TURNS = 600; // trava de segurança
+
+  function emptyCounts() {
+    const h = {};
+    MATERIALS.forEach(m => { h[m.id] = 0; });
+    return h;
+  }
+  function toArr(h) { return MATERIALS.map(m => h[m.id] || 0); }
+  function total(h) { return MATERIALS.reduce((a, m) => a + (h[m.id] || 0), 0); }
+
+  function shuffle(arr, rng) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  /* ---------- Preparação ---------- */
+  function newGame(nPlayers, names, rng) {
+    rng = rng || Math.random;
+    const obs = BY_ID.obsidiana.qtd;
+    const each = Math.floor(obs / nPlayers);
+    const players = [];
+    for (let i = 0; i < nPlayers; i++) {
+      const hand = emptyCounts();
+      hand.obsidiana = each;
+      players.push({ name: (names && names[i]) || ('Jogador ' + (i + 1)), hand });
+    }
+    const deck = [];
+    MATERIALS.forEach(m => {
+      const q = m.qtd - (m.id === 'obsidiana' ? each * nPlayers : 0);
+      for (let k = 0; k < q; k++) deck.push(m.id);
+    });
+    shuffle(deck, rng);
+    const marketSize = 12 + nPlayers; // 2 jogadores: 14, 3: 15, 4: 16
+    const market = emptyCounts();
+    for (let k = 0; k < marketSize; k++) market[deck.pop()]++;
+    // Registro público: o que cada jogador tinha no início mais o que se sabe pelas trocas.
+    // As cartas compradas do monte são secretas e não entram aqui.
+    const known = players.map(pl => Object.assign({}, pl.hand));
+    return {
+      players, pile: deck, market, known,
+      turn: 0, passes: 0, over: false,
+      emptyAtStart: false, traded: false, drew: null, turnsTaken: 0,
+      startingObsidian: each
+    };
+  }
+
+  /* ---------- Troca ---------- */
+  function power(give) {
+    let base = 0, cards = 0, kinds = 0;
+    MATERIALS.forEach(m => {
+      const q = give[m.id] || 0;
+      if (q > 0) { base += q * m.valor; cards += q; kinds++; }
+    });
+    // +1 por carta quando todas são do mesmo material, mas só a partir de 2 cópias.
+    const bonus = kinds === 1 && cards >= 2 ? cards : 0;
+    return { base, bonus, total: base + bonus, cards, kinds };
+  }
+  function cost(take) {
+    let c = 0, cards = 0;
+    MATERIALS.forEach(m => {
+      const q = take[m.id] || 0;
+      c += q * m.valor; cards += q;
+    });
+    return { total: c, cards };
+  }
+  // Regra: não dá para levar um material igual a um que você está entregando, nem sozinho
+  // nem como parte do poder de compra. Vale para todos os materiais, metais e gemas.
+  function conflito(give, take) {
+    return MATERIALS.find(m => (give[m.id] || 0) > 0 && (take[m.id] || 0) > 0) || null;
+  }
+
+  function validateTrade(s, p, give, take) {
+    const hand = s.players[p].hand;
+    let g = 0, t = 0;
+    for (const m of MATERIALS) {
+      const a = give[m.id] || 0, b = take[m.id] || 0;
+      if (a < 0 || b < 0) return { ok: false, reason: 'Quantidade inválida.' };
+      if (a > hand[m.id]) return { ok: false, reason: 'Você não tem essas cartas.' };
+      if (b > s.market[m.id]) return { ok: false, reason: 'Essas cartas não estão no mercado.' };
+      g += a; t += b;
+    }
+    if (g === 0) return { ok: false, reason: 'Escolha cartas da mão para entregar.' };
+    if (t === 0) return { ok: false, reason: 'Escolha cartas do mercado para levar.' };
+    const c = conflito(give, take);
+    if (c) {
+      return { ok: false, conflict: c.id,
+        reason: 'Material igual: não dá para entregar e levar ' + c.nome + '.' };
+    }
+    const pw = power(give).total, cs = cost(take).total;
+    if (cs > pw) return { ok: false, reason: 'Faltam ' + (cs - pw) + ' de poder.' };
+    return { ok: true, power: pw, cost: cs };
+  }
+  function applyTrade(s, p, give, take) {
+    const hand = s.players[p].hand;
+    MATERIALS.forEach(m => {
+      const a = give[m.id] || 0, b = take[m.id] || 0;
+      hand[m.id] += b - a;
+      s.market[m.id] += a - b;
+      if (s.known) s.known[p][m.id] += b - a;
+    });
+    s.traded = true;
+  }
+
+  /* ---------- Turnos ---------- */
+  function beginTurn(s) {
+    s.traded = false;
+    s.drew = null;
+    s.emptyAtStart = s.pile.length === 0;
+    if (!s.emptyAtStart) {
+      const id = s.pile.pop();
+      s.players[s.turn].hand[id]++;
+      s.drew = id;
+    }
+    return s.drew;
+  }
+  function finishTurn(s) {
+    s.turnsTaken++;
+    if (s.traded) s.passes = 0;
+    else if (s.emptyAtStart) s.passes++;
+    if (s.passes >= s.players.length || s.turnsTaken >= MAX_TURNS) s.over = true;
+    else s.turn = (s.turn + 1) % s.players.length;
+  }
+
+  /* ---------- Coroa ---------- */
+  function pts(i, q) { return q > 0 ? MATERIALS[i].valor + q : 0; }
+
+  function bestCrownArr(arr) {
+    let best = -1, bc = 0, bg1 = 0, bg2 = 0;
+    for (let k = 0; k < CROWN_IDX.length; k++) {
+      const ci = CROWN_IDX[k];
+      const pc = pts(ci, arr[ci]);
+      for (let j = 0; j < GEM_PAIRS.length; j++) {
+        const ga = GEM_PAIRS[j][0], gb = GEM_PAIRS[j][1];
+        if (ga === ci || gb === ci) continue;
+        const sc = pc + pts(ga, arr[ga]) + pts(gb, arr[gb]);
+        if (sc > best) { best = sc; bc = ci; bg1 = ga; bg2 = gb; }
+      }
+    }
+    return { score: best, c: bc, g1: bg1, g2: bg2 };
+  }
+
+  function bestCrown(h) {
+    const arr = toArr(h);
+    const r = bestCrownArr(arr);
+    const mk = (i, papel) => ({
+      id: MATERIALS[i].id, nome: MATERIALS[i].nome, papel,
+      valor: MATERIALS[i].valor, qtd: arr[i], pts: pts(i, arr[i])
+    });
+    const gems = [mk(r.g1, 'gema'), mk(r.g2, 'gema')].sort((a, b) => b.pts - a.pts);
+    const parts = [mk(r.c, 'coroa')].concat(gems);
+    return { score: r.score, parts, cards: parts.reduce((a, p) => a + p.qtd, 0) };
+  }
+
+  /* ---------- Bot ---------- */
+  function candidateGives(arr) {
+    const gives = [];
+    for (let i = 0; i < N; i++) {
+      for (let k = 1; k <= arr[i]; k++) {
+        const g = new Array(N).fill(0);
+        g[i] = k;
+        gives.push(g);
+      }
+    }
+    // Entregar de uma vez tudo o que não entra na melhor coroa (sem valorização).
+    const r = bestCrownArr(arr);
+    const used = [r.c, r.g1, r.g2];
+    const left = arr.map((q, i) => (used.indexOf(i) >= 0 ? 0 : q));
+    const kinds = left.filter(q => q > 0).length;
+    if (kinds >= 2) gives.push(left);
+    return gives;
+  }
+
+  // Quanto as cartas entregues ao mercado poderiam melhorar a melhor coroa de um
+  // oponente, com base só no que é público (mão inicial + trocas já vistas).
+  function threatOf(s, p, giveArr) {
+    let worst = 0;
+    for (let o = 0; o < s.players.length; o++) {
+      if (o === p) continue;
+      const est = toArr(s.known[o]);
+      const base = bestCrownArr(est).score;
+      const after = est.map((q, i) => q + giveArr[i]);
+      const gain = bestCrownArr(after).score - base;
+      if (gain > worst) worst = gain;
+    }
+    return worst;
+  }
+
+  // Peso da ameaça no desempate do bot esperto. A pontuação própria sempre vem
+  // primeiro (escala 100000), então a ameaça nunca troca pontos por defesa.
+  // Testei pesos de 0 a 3 em milhares de partidas contra o bot básico: até 0,3 empata
+  // (nenhum custo em pontos); 3 já piora, porque trava o crescimento da própria coroa.
+  const cfg = { threatW: 0.3 };
+  const SCORE_W = 100000;
+
+  // level: 'basico' ou 'esperto'
+  function botChoose(s, p, rng, level) {
+    rng = rng || Math.random;
+    const smart = level === 'esperto' && !!s.known;
+    const handArr = toArr(s.players[p].hand);
+    const handCards = handArr.reduce((a, b) => a + b, 0);
+    const baseKey = bestCrownArr(handArr).score * SCORE_W + handCards;
+    let bestKey = baseKey, best = null, ties = 0;
+
+    const mk = toArr(s.market);
+    const mIdx = [];
+    mk.forEach((q, i) => { if (q > 0) mIdx.push(i); });
+
+    for (const g of candidateGives(handArr)) {
+      let pw = 0, cards = 0, kinds = 0;
+      g.forEach((q, i) => {
+        if (q > 0) { pw += q * MATERIALS[i].valor; cards += q; kinds++; }
+      });
+      if (kinds === 1 && cards >= 2) pw += cards;
+      const threat = smart ? threatOf(s, p, g) : 0;
+      const afterGive = handArr.map((q, i) => q - g[i]);
+      const take = new Array(N).fill(0);
+
+      const rec = (k, remaining, taken) => {
+        if (k === mIdx.length) {
+          if (taken === 0) return;
+          const arr = afterGive.map((q, i) => q + take[i]);
+          const key = bestCrownArr(arr).score * SCORE_W - threat * cfg.threatW + (handCards - cards + taken);
+          if (key > bestKey) {
+            bestKey = key; best = { g: g.slice(), t: take.slice() }; ties = 1;
+          } else if (key === bestKey && best) {
+            ties++;
+            if (rng() * ties < 1) best = { g: g.slice(), t: take.slice() };
+          }
+          return;
+        }
+        const i = mIdx[k];
+        // Não pode levar um material que está entregando.
+        const blocked = g[i] > 0;
+        const maxK = blocked ? 0 : Math.min(mk[i], Math.floor(remaining / MATERIALS[i].valor));
+        for (let c = 0; c <= maxK; c++) {
+          take[i] = c;
+          rec(k + 1, remaining - c * MATERIALS[i].valor, taken + c);
+        }
+        take[i] = 0;
+      };
+      rec(0, pw, 0);
+    }
+    if (!best) return null;
+    const give = {}, take = {};
+    MATERIALS.forEach((m, i) => {
+      if (best.g[i] > 0) give[m.id] = best.g[i];
+      if (best.t[i] > 0) take[m.id] = best.t[i];
+    });
+    return { give, take };
+  }
+
+  /* ---------- Resultado ---------- */
+  function finalResults(s) {
+    const rows = s.players.map((p, i) => ({
+      index: i, name: p.name, crown: bestCrown(p.hand),
+      cards: total(p.hand), hand: Object.assign({}, p.hand)
+    }));
+    const maxScore = Math.max.apply(null, rows.map(r => r.crown.score));
+    let top = rows.filter(r => r.crown.score === maxScore);
+    if (top.length > 1) {
+      const maxCards = Math.max.apply(null, top.map(r => r.cards));
+      top = top.filter(r => r.cards === maxCards);
+    }
+    return { rows, winners: top.map(r => r.index), tie: top.length > 1 };
+  }
+
+  const api = {
+    MATERIALS, BY_ID, IDX, newGame, power, cost, validateTrade, applyTrade,
+    beginTurn, finishTurn, bestCrown, botChoose, finalResults,
+    total, emptyCounts, cfg, conflito
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.Crown = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+</script>
+<script>
+/* Crown: interface. Usa window.Crown (src/logic.js). */
+(function () {
+  'use strict';
+  const L = window.Crown;
+  const M = L.MATERIALS;
+  const BY = L.BY_ID;
+  const $ = id => document.getElementById(id);
+
+  const el = {
+    bots: $('bots'), level: $('level'), sound: $('sound'), newgame: $('newgame'), skip: $('skip'),
+    players: $('players'), meta: $('meta'), turnmsg: $('turnmsg'),
+    board: $('board'), market: $('market'), marketCount: $('marketCount'), marketPanel: $('marketPanel'),
+    feedList: $('feedList'), feedNote: $('feedNote'),
+    handPanel: $('handPanel'), hand: $('hand'), handCount: $('handCount'), crownline: $('crownline'),
+    trade: $('trade'), giveTxt: $('giveTxt'), powerNum: $('powerNum'), powerCap: $('powerCap'), takeTxt: $('takeTxt'), costNum: $('costNum'),
+    tradeMsg: $('tradeMsg'), delta: $('delta'), confirm: $('confirm'), clear: $('clear'), pass: $('pass'),
+    result: $('result'), log: $('log'), rulesTable: $('rulesTable')
+  };
+  el.feedList.setAttribute('aria-live', 'polite');
+
+  /* ---------- nomes dos bots: reis e rainhas da história ---------- */
+  const NOMES = [
+    // Antiguidade
+    "Rainha Cleópatra VII", "Faraó Hatshepsut", "Faraó Ramsés II", "Faraó Tutancâmon", "Rei Hamurabi",
+    "Rei Nabucodonosor II", "Rei Ciro, o Grande", "Rei Dario I", "Rainha Tomíris", "Rainha Zenóbia de Palmira",
+    "Rainha Boadiceia", "Rei Leônidas de Esparta", "Rei Alexandre, o Grande", "Rei Salomão", "Imperador Ashoka",
+    // África
+    "Rainha Nzinga de Angola", "Mansa Musa do Mali", "Rei Shaka Zulu", "Rainha Amanirenas de Cuxe",
+    "Imperador Menelik II", "Rainha Ranavalona I", "Rei Sundiata Keita", "Askia Mohammed de Songai",
+    "Rei Ezana de Axum", "Rei Lalibela", "Rainha Amina de Zazzau", "Rei Cetshwayo", "Rei Behanzin de Daomé",
+    // Europa
+    "Rei Carlos Magno", "Rainha Eleonora da Aquitânia", "Rainha Elizabeth I", "Rainha Vitória", "Rei Henrique VIII",
+    "Rainha Isabel de Castela", "Rei Luís XIV", "Imperatriz Catarina, a Grande", "Rei Afonso Henriques",
+    "Rei Ricardo Coração de Leão", "Rei Alfredo, o Grande", "Rei Canuto, o Grande", "Rainha Margarida I",
+    "Rainha Cristina da Suécia", "Rainha Tamar da Geórgia", "Rei Estêvão I da Hungria", "Rei Matias Corvino",
+    "Rei Harald Hardrada", "Rainha Jadwiga da Polônia", "Imperador Dom Pedro II", "Rainha Dona Maria I",
+    // Ásia
+    "Grande Cã Gengis", "Kublai Cã", "Imperador Qin Shi Huang", "Imperatriz Wu Zetian", "Imperador Kangxi",
+    "Rei Sejong, o Grande", "Rainha Seondeok de Silla", "Rainha Himiko de Yamatai", "Rei Jayavarman VII",
+    "Rei Rajaraja Chola I", "Rainha Didda da Caxemira", "Rainha Lakshmibai de Jhansi", "Imperador Akbar",
+    "Sultão Suleiman, o Magnífico", "Sultão Saladino", "Emir Tamerlão", "Rainha Trưng Trắc",
+    // Américas e Oceania
+    "Sapa Inca Pachacútec", "Sapa Inca Atahualpa", "Tlatoani Moctezuma II", "Rei Pakal de Palenque",
+    "Rei Nezahualcóyotl", "Rei Kamehameha I", "Rainha Liliʻuokalani", "Rainha Pomare IV"
+  ];
+  function sorteiaNomes(n) {
+    const a = NOMES.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a.slice(0, n);
+  }
+
+  /* ---------- sons simples (WebAudio), baixos e curtos ---------- */
+  const Som = (function () {
+    let ctx = null;
+    let on = true;
+    try { on = localStorage.getItem('crown-som') !== 'desligado'; } catch (e) { /* sem armazenamento */ }
+    function audio() {
+      if (!on) return null;
+      try {
+        if (!ctx) {
+          const A = window.AudioContext || window.webkitAudioContext;
+          if (!A) return null;
+          ctx = new A();
+        }
+        if (ctx.state === 'suspended') ctx.resume();
+        return ctx;
+      } catch (e) { return null; }
+    }
+    function nota(freq, ini, dur, tipo, vol, ate) {
+      const c = audio();
+      if (!c) return;
+      const t = c.currentTime + ini;
+      const o = c.createOscillator();
+      const g = c.createGain();
+      o.type = tipo || 'sine';
+      o.frequency.setValueAtTime(freq, t);
+      if (ate) o.frequency.exponentialRampToValueAtTime(ate, t + dur);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t + dur + 0.03);
+    }
+    return {
+      get ligado() { return on; },
+      alterna() {
+        on = !on;
+        try { localStorage.setItem('crown-som', on ? 'ligado' : 'desligado'); } catch (e) { /* ok */ }
+        return on;
+      },
+      marcar() { nota(660, 0, 0.07, 'triangle', 0.05); },
+      desmarcar() { nota(440, 0, 0.07, 'triangle', 0.04); },
+      comprar() { nota(300, 0, 0.1, 'sine', 0.05, 520); },
+      troca() { nota(523, 0, 0.12, 'sine', 0.06); nota(784, 0.09, 0.18, 'sine', 0.06); },
+      trocaBot() { nota(392, 0, 0.1, 'triangle', 0.04); nota(523, 0.08, 0.14, 'triangle', 0.04); },
+      passa() { nota(260, 0, 0.1, 'sine', 0.035); },
+      ganhou() { [523, 659, 784, 1047].forEach((f, i) => nota(f, i * 0.11, 0.22, 'sine', 0.06)); },
+      perdeu() { [392, 330, 262].forEach((f, i) => nota(f, i * 0.15, 0.26, 'sine', 0.05)); }
+    };
+  })();
+
+  /* ---------- estado da interface ---------- */
+  let S = null;
+  let phase = 'idle';         // human | bot | busy | over
+  let actor = 0;
+  let names = [];
+  let level = 'esperto';
+  let sel = { hand: {}, market: {} };
+  let flash = null;           // { hand: {id: delta}, market: {id: delta} }, usado uma vez pelo próximo desenho
+  let feed = [];              // jogadas da rodada, uma posição por jogador
+  let logLines = [];
+  let timer = null;
+  let pending = null;
+  let confirmNew = false;
+  let confirmTimer = null;
+
+  /* ---------- agendador (permite pular a espera) ---------- */
+  function agenda(fn, ms) {
+    clearTimeout(timer);
+    pending = fn;
+    timer = setTimeout(roda, ms);
+  }
+  function roda() {
+    const f = pending;
+    clearTimeout(timer);
+    timer = null; pending = null;
+    if (f) f();
+  }
+  function cancela() { clearTimeout(timer); timer = null; pending = null; }
+
+  /* ---------- utilidades ---------- */
+  function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+  function glyph(m) { return m.coroa && m.gema ? 'g-both' : (m.coroa ? 'g-crown' : 'g-gem'); }
+  function kindLabel(m) { return m.coroa && m.gema ? 'coroa e gema' : (m.coroa ? 'coroa' : 'gema'); }
+  function plural(n, one, many) { return n === 1 ? one : many; }
+  function fmt(counts) {
+    const parts = M.filter(m => counts[m.id] > 0).map(m => counts[m.id] + '× ' + m.nome);
+    return parts.length ? parts.join(', ') : 'nada';
+  }
+  function sumSel(o) { return Object.keys(o).reduce((a, k) => a + (o[k] || 0), 0); }
+  function addLog(t) {
+    logLines.unshift(t);
+    if (logLines.length > 40) logLines.pop();
+    el.log.innerHTML = logLines.slice(0, 8).map(l => '<li>' + esc(l) + '</li>').join('');
+  }
+
+  /* ---------- tabela de regras ---------- */
+  el.rulesTable.innerHTML = M.map(m =>
+    '<tr><td>' + m.nome + '</td><td>' + (m.coroa && m.gema ? 'Coroa ou gema' : (m.coroa ? 'Coroa' : 'Gema')) +
+    '</td><td>' + m.valor + '</td><td>' + m.qtd + '</td></tr>').join('');
+
+  /* ---------- início ---------- */
+  function startGame() {
+    cancela();
+    resetNewButton();
+    const nBots = parseInt(el.bots.value, 10);
+    level = el.level.value;
+    names = ['Você'].concat(sorteiaNomes(nBots));
+    S = L.newGame(nBots + 1, names);
+    logLines = [];
+    resetFeed();
+    flash = null;
+    el.log.innerHTML = '';
+    sel = { hand: {}, market: {} };
+    el.result.hidden = true;
+    el.board.hidden = false;
+    addLog('Partida iniciada contra ' + names.slice(1).join(', ') + '. Cada jogador começou com ' + S.startingObsidian + ' Obsidianas e o mercado abriu com ' + L.total(S.market) + ' cartas.');
+    nextTurn();
+  }
+
+  function nextTurn() {
+    if (S.over) { showResult(); return; }
+    actor = S.turn;
+    const drew = L.beginTurn(S);
+    if (actor === 0) {
+      phase = 'human';
+      sel = { hand: {}, market: {} };
+      addLog(drew ? 'Você comprou 1× ' + BY[drew].nome + ' do monte.' : 'O monte está vazio, então você não compra carta.');
+      if (drew) { flash = { hand: { [drew]: 1 }, market: {} }; Som.comprar(); }
+      renderAll();
+    } else {
+      phase = 'bot';
+      if (drew) addLog(names[actor] + ' comprou 1 carta do monte.');
+      renderAll();
+      agenda(botAct, 900);
+    }
+  }
+
+  /* destaques: delta > 0 ganhou cartas, delta < 0 perdeu */
+  function mkFlash(give, take, humanActed) {
+    const f = { hand: {}, market: {} };
+    M.forEach(m => {
+      const g = give[m.id] || 0, t = take[m.id] || 0;
+      if (humanActed && t - g !== 0) f.hand[m.id] = t - g;
+      if (g - t !== 0) f.market[m.id] = g - t;
+    });
+    return f;
+  }
+
+  function botAct() {
+    const p = actor;
+    const mv = L.botChoose(S, p, null, level);
+    if (mv) {
+      L.applyTrade(S, p, mv.give, mv.take);
+      addLog(names[p] + ' entregou ' + fmt(mv.give) + ' e levou ' + fmt(mv.take) + '.');
+      pushFeed(p, mv.give, mv.take);
+      flash = mkFlash(mv.give, mv.take, false);
+      Som.trocaBot();
+    } else {
+      const txt = S.emptyAtStart ? 'passou a vez' : 'não fez troca';
+      addLog(names[p] + ' ' + txt + '.');
+      pushFeed(p, null, null, txt);
+      Som.passa();
+    }
+    L.finishTurn(S);
+    renderAll();
+    agenda(nextTurn, mv ? 1700 : 800);
+  }
+
+  /* ---------- ações do jogador ---------- */
+  function onConfirm() {
+    if (phase !== 'human') return;
+    const v = L.validateTrade(S, 0, sel.hand, sel.market);
+    if (!v.ok) return;
+    phase = 'busy';
+    const give = Object.assign({}, sel.hand), take = Object.assign({}, sel.market);
+    resetFeed(); // uma rodada nova começa quando você joga
+    L.applyTrade(S, 0, give, take);
+    addLog('Você entregou ' + fmt(give) + ' e levou ' + fmt(take) + '.');
+    pushFeed(0, give, take);
+    flash = mkFlash(give, take, true);
+    Som.troca();
+    sel = { hand: {}, market: {} };
+    L.finishTurn(S);
+    renderAll();
+    agenda(nextTurn, 1300);
+  }
+  function onPass() {
+    if (phase !== 'human') return;
+    phase = 'busy';
+    const txt = S.emptyAtStart ? 'passou a vez' : 'encerrou o turno sem trocar';
+    resetFeed();
+    addLog('Você ' + txt + '.');
+    pushFeed(0, null, null, txt);
+    Som.passa();
+    sel = { hand: {}, market: {} };
+    L.finishTurn(S);
+    renderAll();
+    agenda(nextTurn, 700);
+  }
+  function onClear() {
+    if (phase !== 'human') return;
+    if (sumSel(sel.hand) + sumSel(sel.market) > 0) Som.desmarcar();
+    sel = { hand: {}, market: {} };
+    refreshTrade();
+  }
+
+  function popSlot(slot) {
+    slot.classList.remove('pop');
+    void slot.offsetWidth;
+    slot.classList.add('pop');
+  }
+  function onSlotClick(e) {
+    const btn = e.target.closest('[data-act]');
+    if (!btn || phase !== 'human') return;
+    const slot = btn.closest('.slot');
+    if (!slot || !slot.dataset.id || slot.classList.contains('ghost')) return;
+    const zone = slot.dataset.zone, id = slot.dataset.id;
+    const max = zone === 'hand' ? S.players[0].hand[id] : S.market[id];
+    const cur = sel[zone][id] || 0;
+    if (btn.dataset.act === 'inc' && cur < max) { sel[zone][id] = cur + 1; Som.marcar(); }
+    else if (btn.dataset.act === 'dec' && cur > 0) { sel[zone][id] = cur - 1; Som.desmarcar(); }
+    else return;
+    if (!sel[zone][id]) delete sel[zone][id];
+    refreshTrade();
+    popSlot(slot);
+  }
+  el.hand.addEventListener('click', onSlotClick);
+  el.market.addEventListener('click', onSlotClick);
+  el.confirm.addEventListener('click', onConfirm);
+  el.pass.addEventListener('click', onPass);
+  el.clear.addEventListener('click', onClear);
+  el.skip.addEventListener('click', () => { if (pending) roda(); });
+  el.bots.addEventListener('change', startGame);
+  el.level.addEventListener('change', startGame);
+
+  function paintSound() {
+    const txt = Som.ligado ? 'Som ligado' : 'Som desligado';
+    el.sound.setAttribute('aria-pressed', Som.ligado ? 'true' : 'false');
+    el.sound.setAttribute('aria-label', txt);
+    el.sound.title = txt;
+  }
+  el.sound.addEventListener('click', () => {
+    Som.alterna();
+    paintSound();
+    Som.marcar();
+  });
+  paintSound();
+
+  function resetNewButton() {
+    confirmNew = false;
+    clearTimeout(confirmTimer);
+    el.newgame.innerHTML = 'Nova<span class="deskonly"> partida</span>';
+  }
+  el.newgame.addEventListener('click', () => {
+    if (!confirmNew && S && !S.over) {
+      confirmNew = true;
+      el.newgame.innerHTML = '<span class="deskonly">Confirmar: reiniciar</span><span class="mobonly">Confirmar?</span>';
+      confirmTimer = setTimeout(resetNewButton, 3500);
+    } else {
+      startGame();
+    }
+  });
+
+  /* ---------- jogadas da rodada ---------- */
+  // feed[i] guarda a última jogada do jogador i na rodada (ou null). Há sempre uma linha por jogador,
+  // então o painel mantém a mesma altura durante toda a rodada.
+  function resetFeed() { feed = names.map(() => null); }
+  function pushFeed(i, give, take, text) {
+    feed[i] = { give, take, text: text || '', fresh: true };
+  }
+  function chips(o) {
+    return M.filter(m => o[m.id] > 0).map(m =>
+      '<span class="fchip" data-m="' + m.id + '"><i class="sw"></i>' + o[m.id] + '× ' + m.nome + '</span>').join('');
+  }
+  function renderFeed() {
+    const any = feed.some(Boolean);
+    el.feedNote.innerHTML = !any ? '' : '<span class="deskonly">' + (phase === 'human' ? 'rodada anterior' : 'rodada atual') +
+      '</span><span class="mobonly">entregou → levou</span>';
+    el.feedList.innerHTML = feed.map((f, i) => {
+      const me = i === 0 ? ' me' : '';
+      if (!f) {
+        const txt = phase === 'bot' && i === actor ? 'pensando…'
+          : (phase === 'human' && i === 0 ? 'sua vez' : 'ainda não jogou nesta rodada');
+        return '<li class="fe wait' + me + '"><span class="who" title="' + esc(names[i]) + '">' + esc(names[i]) + '</span><span class="deal"><span class="none">' + txt + '</span></span></li>';
+      }
+      const deal = f.give
+        ? '<span class="lbl">entregou</span>' + chips(f.give) + '<span class="ar" aria-hidden="true">→</span><span class="lbl">levou</span>' + chips(f.take)
+        : '<span class="none">' + esc(f.text) + '</span>';
+      const html = '<li class="fe' + me + (f.fresh ? ' fresh' : '') + '"><span class="who" title="' + esc(names[i]) + '">' + esc(names[i]) + '</span><span class="deal">' + deal + '</span></li>';
+      f.fresh = false;
+      return html;
+    }).join('');
+  }
+
+  /* ---------- renderização ---------- */
+  // Quantas cartas de espaço cada painel reserva. O Mercado reserva 8 (2 linhas no desktop) para não
+  // pular de altura a cada troca; a Mão cresce livre, já que não há nada interativo abaixo dela.
+  const RESERVA = { market: 8, hand: 0 };
+
+  function slotHTML(m, count, zone, inCrown, delta) {
+    const place = zone === 'hand' ? 'na sua mão' : 'no mercado';
+    const label = m.nome + ', ' + kindLabel(m) + ', valor ' + m.valor + ', ' + m.qtd + ' cópias no jogo, ' +
+      count + ' ' + place + (inCrown ? ', usada na sua melhor coroa' : '') + '. Tocar adiciona uma à troca.';
+    const g = glyph(m);
+    const state = count === 0 ? ' ghost' : ''; // 0 cartas só aparece como destaque de saída
+    const cls = 'slot' + state + (delta > 0 ? ' gain' : '') + (delta < 0 ? ' loss' : '') + (inCrown ? ' incrown' : '');
+    const chip = delta
+      ? '<span class="chip-d ' + (delta > 0 ? 'up' : 'down') + '" aria-hidden="true">' + (delta > 0 ? '+' : '−') + Math.abs(delta) + '</span>'
+      : '';
+    return '<div class="' + cls + '" data-zone="' + zone + '" data-id="' + m.id + '" data-m="' + m.id + '">' +
+      '<button type="button" class="tile" data-act="inc" aria-label="' + esc(label) + '">' +
+        (count >= 3 ? '<span class="layer l2"></span>' : '') +
+        (count >= 2 ? '<span class="layer l1"></span>' : '') +
+        '<span class="face">' +
+          '<span class="row"><span class="val">' + m.valor + '</span>' +
+          '<svg class="kind" aria-hidden="true"><use href="#' + g + '"/></svg></span>' +
+          '<svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#' + g + '"/></svg>' +
+          '<span class="foot"><span class="nm">' + m.nome + '</span>' +
+          '<span class="tot" title="' + m.qtd + ' cópias no jogo">' + m.qtd + '</span></span>' +
+        '</span>' +
+        chip +
+        '<span class="pick" hidden aria-hidden="true">0</span>' +
+      '</button>' +
+      '<div class="ctl">' +
+        '<button type="button" data-act="dec" aria-label="Tirar uma ' + m.nome + ' da troca">−</button>' +
+        '<span class="cnt" aria-hidden="true"><svg class="ci"><use href="#g-crown"/></svg><span class="n">×' + count + '</span></span>' +
+        '<button type="button" data-act="inc" aria-label="Adicionar uma ' + m.nome + ' à troca">+</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // Só os materiais presentes (ou que acabaram de sair, para o destaque), em fluxo contínuo.
+  // Os blocos "pad" são invisíveis e só mantêm a altura do painel quando há poucos materiais.
+  function padHTML() {
+    return '<div class="slot pad" aria-hidden="true"><div class="tile"></div><div class="ctl"><button type="button" tabindex="-1">−</button></div></div>';
+  }
+  function zoneHTML(zone, counts, f, inCrown, reserva) {
+    const ids = M.filter(m => counts[m.id] > 0 || f[m.id]).map(m => m.id);
+    let html = ids.map(id => slotHTML(BY[id], counts[id], zone, inCrown.has(id), f[id] || 0)).join('');
+    for (let k = ids.length; k < reserva; k++) html += padHTML();
+    return html;
+  }
+
+  function renderStatus() {
+    el.players.innerHTML = S.players.map((p, i) =>
+      '<span class="pl' + (i === actor && phase !== 'over' ? ' active' : '') + '"><b>' + esc(p.name) + '</b><span class="pc">' +
+      L.total(p.hand) + ' ' + plural(L.total(p.hand), 'carta', 'cartas') + '</span></span>').join('');
+    el.meta.innerHTML = 'Monte <b>' + S.pile.length + '</b> · Mercado <b>' + L.total(S.market) + '</b>' +
+      (S.pile.length === 0 && phase !== 'over'
+        ? '<span class="deskonly"> · fim da partida se todos passarem em sequência</span><span class="mobonly"> · fim se todos passarem</span> (<b>' + S.passes + '</b>/<b>' + S.players.length + '</b>)'
+        : '');
+    let msg = '';
+    if (phase === 'human') {
+      msg = 'Sua vez.<span class="hint deskonly"> ' + (S.pile.length === 0 && S.emptyAtStart
+        ? 'Faça uma troca ou passe.'
+        : 'Faça uma troca ou encerre o turno.') + '</span>';
+    } else if (phase === 'bot') {
+      msg = '<span class="deskonly">Vez de ' + esc(names[actor]) + '…</span><span class="mobonly">Vez do bot…</span>';
+    } else if (phase === 'busy') {
+      msg = 'Turno encerrado.';
+    } else if (phase === 'over') {
+      msg = 'Partida encerrada.';
+    }
+    el.turnmsg.innerHTML = msg;
+    el.skip.hidden = !(phase === 'bot' || phase === 'busy');
+    document.querySelector('.sep').hidden = phase === 'over';
+  }
+
+  function renderTiles() {
+    const f = flash || { hand: {}, market: {} };
+    flash = null; // os destaques valem só para este desenho
+    const hand = S.players[0].hand;
+    const crown = L.bestCrown(hand);
+    const inCrown = new Set(crown.parts.filter(p => p.qtd > 0).map(p => p.id));
+    el.hand.innerHTML = zoneHTML('hand', hand, f.hand, inCrown, RESERVA.hand);
+    el.market.innerHTML = zoneHTML('market', S.market, f.market, new Set(), RESERVA.market);
+    el.handCount.textContent = L.total(hand) + ' ' + plural(L.total(hand), 'carta', 'cartas');
+    el.marketCount.textContent = L.total(S.market) + ' ' + plural(L.total(S.market), 'carta', 'cartas');
+    const waiting = phase !== 'human';
+    el.marketPanel.classList.toggle('waiting', waiting);
+    el.handPanel.classList.toggle('waiting', waiting);
+    el.trade.classList.toggle('waiting', waiting);
+  }
+
+  function crownText(c) {
+    const used = c.parts.filter(p => p.qtd > 0);
+    if (!used.length) return 'ainda sem coroa';
+    return used.map(p => p.nome).join(' + ') + ' = ' + c.score + (c.score === 1 ? ' ponto' : ' pontos');
+  }
+
+  function refreshTrade() {
+    const human = phase === 'human';
+    const hand = S.players[0].hand;
+    const clash = new Set(M.filter(m => sel.hand[m.id] && sel.market[m.id]).map(m => m.id));
+
+    document.querySelectorAll('.slot[data-id]').forEach(slot => {
+      const zone = slot.dataset.zone, id = slot.dataset.id;
+      const max = zone === 'hand' ? hand[id] : S.market[id];
+      const cur = sel[zone][id] || 0;
+      const pick = slot.querySelector('.pick');
+      pick.hidden = cur === 0;
+      pick.textContent = cur;
+      slot.classList.toggle('on', cur > 0);
+      slot.classList.toggle('bad', cur > 0 && clash.has(id));
+      slot.querySelector('.cnt .n').textContent = cur > 0 ? cur + '/' + max : '×' + max;
+      const [dec, inc] = slot.querySelectorAll('.ctl button');
+      dec.disabled = !human || cur === 0;
+      inc.disabled = !human || cur >= max;
+      slot.querySelector('.tile').disabled = !human || max === 0;
+    });
+
+    const gCards = sumSel(sel.hand), tCards = sumSel(sel.market);
+    const pw = L.power(sel.hand), cs = L.cost(sel.market);
+
+    el.giveTxt.textContent = gCards ? fmt(sel.hand) : 'Nenhuma carta';
+    el.takeTxt.textContent = tCards ? fmt(sel.market) : 'Nenhuma carta';
+    el.powerNum.textContent = pw.total;
+    el.powerCap.innerHTML = 'poder' + (pw.bonus ? ' <span class="bonus">(+' + pw.bonus + ')</span>' : '');
+    el.powerCap.title = pw.bonus ? 'Inclui +' + pw.bonus + ' de valorização por entregar um só material' : '';
+    el.costNum.textContent = cs.total;
+
+    let msg = '', cls = 'msg';
+    let valid = false;
+    if (!human) {
+      msg = phase === 'bot' ? 'Aguarde ' + names[actor] + '.' : '';
+    } else if (!gCards && !tCards) {
+      msg = 'Escolha cartas para entregar e levar.';
+    } else if (!gCards) {
+      msg = 'Escolha cartas da sua mão para entregar.';
+    } else if (!tCards) {
+      msg = 'Escolha cartas do mercado para levar.';
+    } else {
+      const v = L.validateTrade(S, 0, sel.hand, sel.market);
+      if (!v.ok) {
+        msg = v.reason; cls = 'msg err';
+      } else {
+        valid = true;
+        const sobra = v.power - v.cost;
+        msg = 'Troca válida.' + (sobra ? ' Sobram ' + sobra + ' de poder (não há troco).' : ' Poder e custo batem.');
+        cls = 'msg ok';
+      }
+    }
+    el.tradeMsg.textContent = msg;
+    el.tradeMsg.className = cls;
+
+    const now = L.bestCrown(hand);
+    if (human && valid) {
+      const after = L.emptyCounts();
+      M.forEach(m => { after[m.id] = hand[m.id] - (sel.hand[m.id] || 0) + (sel.market[m.id] || 0); });
+      const next = L.bestCrown(after);
+      const d = next.score - now.score;
+      el.delta.innerHTML = 'Sua coroa: <b>' + now.score + '</b> → <b>' + next.score + '</b> pontos (' + (d >= 0 ? '+' : '−') + Math.abs(d) + ')';
+    } else {
+      el.delta.innerHTML = 'Sua coroa agora: <b>' + now.score + '</b> pontos';
+    }
+    el.crownline.innerHTML = 'Melhor coroa da sua mão: <b>' + esc(crownText(now)) + '</b>';
+
+    el.confirm.disabled = !(human && valid);
+    el.clear.disabled = !(human && (gCards || tCards));
+    el.pass.disabled = !human;
+    el.pass.textContent = S.pile.length === 0 && S.emptyAtStart ? 'Passar' : 'Encerrar turno';
+  }
+
+  function renderAll() {
+    renderStatus();
+    renderFeed();
+    renderTiles();
+    refreshTrade();
+  }
+
+  /* ---------- resultado ---------- */
+  function showResult() {
+    phase = 'over';
+    cancela();
+    renderStatus();
+    const res = L.finalResults(S);
+    const euGanhei = res.winners.indexOf(0) >= 0;
+    let verdict;
+    if (res.tie) {
+      verdict = 'Empate entre ' + res.winners.map(i => names[i]).join(' e ') + '.';
+    } else if (res.winners[0] === 0) {
+      verdict = 'Você venceu!';
+    } else {
+      verdict = names[res.winners[0]] + ' venceu.';
+    }
+    el.result.innerHTML =
+      '<h2>Coroação</h2>' +
+      '<p class="verdict">' + esc(verdict) + '</p>' +
+      '<div class="cards">' + res.rows.map(r => {
+        const win = res.winners.indexOf(r.index) >= 0;
+        const parts = r.crown.parts.map(p => {
+          const why = p.qtd > 0
+            ? (p.papel === 'coroa' ? 'Coroa' : 'Gema') + ': valor ' + p.valor + ' + ' + p.qtd + ' ' + plural(p.qtd, 'carta', 'cartas')
+            : (p.papel === 'coroa' ? 'Coroa' : 'Gema') + ': sem cartas';
+          return '<li data-m="' + p.id + '"><span class="sw"></span><span><b>' + p.nome + '</b><span class="why">' + why + '</span></span><span class="p">' + p.pts + '</span></li>';
+        }).join('');
+        const hand = M.filter(m => r.hand[m.id] > 0).map(m => m.nome + ' ' + r.hand[m.id]).join(' · ');
+        return '<div class="pcard' + (win ? ' win' : '') + '">' +
+          '<h3><span>' + esc(r.name) + '</span>' + (win ? '<span class="badge">' + (res.tie ? 'Empate' : 'Vencedor') + '</span>' : '') + '</h3>' +
+          '<ul class="parts">' + parts + '</ul>' +
+          '<div class="total"><span>Total</span><b>' + r.crown.score + '</b></div>' +
+          '<p class="handline">Mão final (' + r.cards + ' ' + plural(r.cards, 'carta', 'cartas') + '): ' + esc(hand) + '</p>' +
+        '</div>';
+      }).join('') + '</div>' +
+      '<button id="again" class="btn primary" type="button">Jogar de novo</button>';
+    el.result.hidden = false;
+    el.board.hidden = true;
+    addLog(verdict);
+    if (euGanhei) Som.ganhou(); else Som.perdeu();
+    $('again').addEventListener('click', startGame);
+    $('again').focus({ preventScroll: true });
+  }
+
+  if (window.ResizeObserver) {
+    new ResizeObserver(() => {
+      const h = el.board.hidden ? 0 : el.trade.getBoundingClientRect().height;
+      document.documentElement.style.setProperty('--bar-h', Math.round(h) + 'px');
+    }).observe(el.trade);
+  }
+
+  startGame();
+})();
+
+</script>
