@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Todo Mundo Vai Morrer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#eee;-webkit-user-select:none;user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit}
+#rotate{display:none;position:fixed;inset:0;z-index:999;background:#000;color:#fff;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px;font-size:20px;line-height:1.4}
+#rotate .ic{font-size:64px;margin-bottom:12px}
+@media (orientation:portrait){#rotate{display:flex}}
+#stage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;overflow:hidden;background:#050505}
+#bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 42%,#2e2e2e 0%,#141414 55%,#000 100%);background-size:cover;background-position:center;opacity:.95}
+#bg::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 100%,rgba(120,0,0,.25),transparent 60%)}
+/* painéis */
+.panel{position:absolute;background:rgba(10,10,10,.82);border:1px solid #444;border-radius:10px;display:flex;align-items:center;gap:10px;padding:8px 10px;box-sizing:border-box;transition:box-shadow .3s,border-color .3s;z-index:5}
+.panel.turn{border-color:#ffd54a;box-shadow:0 0 14px rgba(255,213,74,.55)}
+.panel.monster{border-color:#e01c1c;box-shadow:0 0 14px rgba(224,28,28,.6)}
+.panel .av{flex:0 0 46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:26px 'Creepster',Impact,fantasy;color:#fff;background-size:cover;background-position:center;border:2px solid #000;box-shadow:0 0 0 1px #888}
+.panel .nm{font-weight:700;font-size:16px;letter-spacing:.5px}
+.panel .st{font-size:14px;color:#ccc;margin-top:2px}
+.panel .bk{display:inline-block;width:14px;height:20px;border-radius:2px;background-size:cover;background-position:center;vertical-align:middle;margin-right:3px;border:1px solid #000;box-shadow:0 0 0 1px #666}
+.panel .role{font-size:12px;color:#ff5a5a;font-weight:700;min-height:14px;margin-top:2px}
+.panel.human{flex-direction:column;justify-content:center;text-align:center}
+.panel.human .av{flex:0 0 54px;width:54px;height:54px}
+#roundinfo{position:absolute;top:88px;left:0;right:0;text-align:center;font-size:15px;color:#bbb;letter-spacing:1px;z-index:5;text-shadow:0 1px 3px #000}
+/* cartas */
+.card{position:absolute;left:0;top:0;width:96px;height:134px;transform-origin:0 0;border-radius:7px;background:#111;border:2px solid #000;box-shadow:0 0 0 1px #666,0 4px 10px #000a;overflow:hidden;pointer-events:none;box-sizing:border-box;transition:transform .55s cubic-bezier(.2,.8,.2,1),opacity .45s,filter .3s,box-shadow .3s}
+.card .art{position:absolute;inset:0;background-size:cover;background-position:center}
+.card .art.fb{background:radial-gradient(circle at 50% 35%,var(--c),#050505 92%)}
+.card .init{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:78px 'Creepster',Impact,fantasy;color:rgba(255,255,255,.2);padding-top:12px}
+.card .nm{position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:11px;letter-spacing:1.5px;color:#ddd;text-transform:uppercase;text-shadow:0 1px 2px #000}
+.card .pts{position:absolute;left:-3px;top:-3px;width:50px;height:50px;background:#d40d12;clip-path:polygon(50% 0%,61% 18%,82% 8%,80% 30%,100% 35%,84% 50%,98% 70%,76% 70%,72% 92%,55% 78%,38% 100%,33% 76%,10% 82%,22% 58%,0% 45%,22% 36%,18% 12%,38% 22%);display:flex;align-items:center;justify-content:center;font:900 22px Impact,'Arial Black',sans-serif;color:#fff;text-shadow:0 0 3px #000,0 0 3px #000}
+.card .ico{position:absolute;left:6px;top:48px;width:20px;height:20px;color:#fff;filter:drop-shadow(0 0 2px #000)}
+.card .ico svg{width:100%;height:100%;fill:currentColor}
+.card.sel{box-shadow:0 0 0 2px #ffd54a,0 0 18px #ffd54a}
+.card.click{pointer-events:auto;cursor:pointer}
+.card.hand.click:hover{filter:brightness(1.15)}
+.card.pick{box-shadow:0 0 0 3px #ffd54a,0 0 18px #ffd54a}
+.card.dim{filter:grayscale(.7) brightness(.55)}
+#stage[data-mode=pickCard] .card.tbl:not(.pick){filter:brightness(.4)}
+/* cabanas */
+.cabin{position:absolute;width:96px;height:134px;perspective:700px;z-index:30;transition:opacity .5s}
+.cabin .flip{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .8s}
+.cabin.rev .flip{transform:rotateY(180deg)}
+.cabin .face{position:absolute;inset:0;border-radius:7px;backface-visibility:hidden;-webkit-backface-visibility:hidden;border:2px solid #000;box-shadow:0 0 0 1px #777,0 4px 14px #000;display:flex;align-items:center;justify-content:center;flex-direction:column;overflow:hidden;background-size:cover;background-position:center;background-repeat:no-repeat;box-sizing:border-box}
+.cabin .back{background-image:radial-gradient(circle at 50% 60%,#8a0f10,#3a0506 75%)}
+.cabin .back.noimg::after{content:'🏚';font-size:50px;opacity:.55}
+.cabin .front{transform:rotateY(180deg);background-color:#1a1a1a}
+.cabin .front .e{font-size:48px}
+.cabin .front .t{font-size:12px;margin-top:6px;letter-spacing:1px;text-transform:uppercase;text-align:center}
+.cabin .chip{position:absolute;left:3px;right:3px;bottom:3px;background:rgba(0,0,0,.8);border:1px solid #ffd54a;border-radius:5px;font-size:11px;text-align:center;padding:3px 0;color:#ffd54a;z-index:3;pointer-events:none}
+.cabin.rev .chip{display:none}
+.slot{position:absolute;width:310px;height:400px;border-radius:18px;border:2px dashed transparent;z-index:50;pointer-events:none;transition:background .2s,border-color .2s;box-sizing:border-box}
+.slot.on{pointer-events:auto;cursor:pointer;border-color:rgba(255,70,70,.75);background:rgba(200,0,0,.09)}
+.slot.on:hover{background:rgba(220,0,0,.22)}
+.slot.sel{border-style:solid;border-color:#ffd54a;background:rgba(255,213,74,.14)}
+/* HUD */
+#hud{position:absolute;left:230px;right:230px;top:506px;min-height:44px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px;z-index:70;pointer-events:none}
+#prompt{background:rgba(0,0,0,.78);padding:7px 16px;border-radius:9px;border:1px solid #6b0f0f;font-size:16px;text-align:center;line-height:1.3;max-width:760px}
+.btn{pointer-events:auto;cursor:pointer;background:#8a0f10;color:#fff;border:1px solid #d33;border-radius:8px;padding:8px 16px;font-size:15px;font-weight:600}
+.btn:hover{background:#b01214}
+.btn.sec{background:#222;border-color:#666}
+.btn.sec:hover{background:#333}
+.btn.sm{padding:5px 10px;font-size:13px;white-space:nowrap}
+.opt img{display:block;width:112px;height:156px;object-fit:cover;border-radius:7px;margin:0 auto 8px;border:2px solid #000;box-shadow:0 0 0 1px #777,0 4px 12px #000}
+.opt.mon{min-width:230px}
+#side{position:absolute;right:14px;bottom:16px;display:flex;gap:10px;align-items:flex-end;z-index:250}
+#side .col{display:flex;flex-direction:column;gap:6px}
+#aid{width:96px;height:134px;border-radius:7px;background:#f2f2f2;color:#111;border:2px solid #000;box-shadow:0 0 0 1px #777;cursor:pointer;padding:5px 4px;box-sizing:border-box;font-size:8px;line-height:1.15;overflow:hidden}
+#aid b{display:block;text-align:center;font-size:9px;margin-bottom:3px}
+#aid div{display:flex;gap:3px;align-items:center;margin:3px 0}
+#aid svg{width:11px;height:11px;fill:#111;flex:0 0 11px}
+#banner{position:absolute;left:0;right:0;top:268px;text-align:center;z-index:90;pointer-events:none;opacity:0;transition:opacity .45s}
+#banner.on{opacity:1}
+#banner .t{display:inline-block;font:54px 'Creepster',Impact,fantasy;color:#e01c1c;text-shadow:0 0 12px #000,0 3px 6px #000;letter-spacing:3px;background:rgba(0,0,0,.55);padding:6px 34px;border-radius:12px}
+#banner .s{font-size:20px;color:#eee;text-shadow:0 2px 4px #000;margin-top:6px}
+#logbox{position:absolute;left:14px;bottom:150px;width:330px;max-height:300px;overflow:auto;background:rgba(0,0,0,.88);border:1px solid #555;border-radius:8px;padding:8px 10px;font-size:13px;z-index:80;display:none;line-height:1.35}
+#logbox.on{display:block}
+#logbox div{border-bottom:1px solid #222;padding:2px 0}
+/* modais */
+#overlay{position:absolute;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.86)}
+#overlay.on{display:flex}
+.box{background:#120707;border:2px solid #7a0c0c;border-radius:14px;padding:22px 30px;max-width:900px;max-height:660px;overflow:auto;box-shadow:0 0 40px #000;line-height:1.45;font-size:15px}
+.box h1{font:60px 'Creepster',Impact,fantasy;color:#e01c1c;margin:0 0 4px;text-align:center;letter-spacing:3px;font-weight:400}
+.box h2{font-size:20px;color:#ff6a6a;margin:14px 0 6px}
+.box p,.box li{margin:4px 0}
+.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:8px 0}
+.opt{cursor:pointer;background:#1d1010;border:2px solid #4a2020;border-radius:10px;padding:8px 14px;text-align:center;min-width:90px;font-size:15px}
+.opt:hover{border-color:#d33}
+.opt.on{border-color:#ffd54a;background:#2c1a10}
+.opt small{display:block;color:#aaa;font-size:12px;max-width:200px;margin-top:3px}
+.legend div{display:flex;gap:10px;align-items:center;margin:6px 0}
+.legend svg{width:26px;height:26px;fill:#fff;flex:0 0 26px}
+table.rank{border-collapse:collapse;margin:10px auto;font-size:18px;min-width:420px}
+table.rank td{padding:6px 14px;border-bottom:1px solid #333}
+table.rank tr.w td{color:#ffd54a;font-weight:700}
+.sw{display:inline-block;width:14px;height:14px;border-radius:50%;margin-right:8px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div id="rotate"><div class="ic">📱↻</div>Gire o aparelho para a horizontal<br>para jogar.</div>
+<div id="stage" data-mode="">
+  <div id="bg"></div>
+  <div id="panels"></div>
+  <div id="roundinfo"></div>
+  <div id="table"></div>
+  <div id="cards"></div>
+  <div id="hud"></div>
+  <div id="side">
+    <div class="col">
+      <button class="btn sec sm" id="btnRestart">↺ Recomeçar</button>
+      <button class="btn sec sm" id="btnSound">🔊 Som</button>
+      <button class="btn sec sm" id="btnRules">Regras</button>
+      <button class="btn sec sm" id="btnLog">Registro</button>
+    </div>
+    <div id="aid" title="Ajuda dos ícones"></div>
+  </div>
+  <div id="logbox"></div>
+  <div id="banner"><div class="t"></div><div class="s"></div></div>
+  <div id="overlay"></div>
+</div>
+
+<script>
+'use strict';
+/* =====================================================================
+   CONFIGURAÇÃO — edite aqui
+   ===================================================================== */
+const CFG = {
+  GHOST_FORCES_ON_LAST_PLAY: true,   // a Fantasma é forçada a trocar mesmo na última jogada da rodada?
+  BOT_DELAY: 900                     // ms de "pensamento" dos bots
+};
+
+/* Links das imagens. Deixe '' para usar o visual provisório desenhado em CSS.
+   Chave de cada carta: "valor-ícone" (ícones: cross, necro, bat, heart, ghost). */
+const BASE = 'https://oficinadoplaytesthub.com.br/vibecode/tmvmassets/';
+const img = n => BASE + n;
+/* Cada personagem usa 8 arquivos seguidos, nesta ordem: */
+const CARD_ORDER = ['3-ghost','3-heart','7-bat','7-necro','10-bat','10-cross','13-necro','13-cross'];
+const deckImgs = first => { const o={}; CARD_ORDER.forEach((k,j)=>{ o[k]=img('tmvmdecknovo_'+String(first+j).padStart(2,'0')+'.png'); }); return o; };
+const ASSETS = {
+  background: '',
+  charBack: img('backchars.png'),            // verso das cartas de personagem
+  cabins: { back: img('backcabana.png'), vazia: img('cardbg4.png'),
+            porco: img('tmvmdecknovo_97.png'), fantasma: img('tmvmdecknovo_98.png'), espantalho: img('tmvmdecknovo_99.png') },
+  characters: {
+    tina: { avatar: '', cards: deckImgs(1)  },
+    joca: { avatar: '', cards: deckImgs(9)  },
+    maju: { avatar: '', cards: deckImgs(17) },
+    davi: { avatar: '', cards: deckImgs(25) },
+    bia:  { avatar: '', cards: deckImgs(33) }
+  }
+};
+
+/* Personagens. O 5º ("Bia") é provisório: só entra em partidas com 5 jogadores (4 bots). */
+const CHARACTERS = [
+  { id:'tina', name:'Tina', color:'#8e44ad' },
+  { id:'joca', name:'Joca', color:'#2e86c1' },
+  { id:'maju', name:'Maju', color:'#d35498' },
+  { id:'davi', name:'Davi', color:'#c0392b' },
+  { id:'bia',  name:'Bia',  color:'#2e8b57' }
+];
+
+/* Baralho simétrico de 8 cartas (valor + ícone) */
+const DECK = [
+  {v:13,i:'cross'},{v:13,i:'necro'},{v:10,i:'cross'},{v:10,i:'bat'},
+  {v:7,i:'bat'},{v:7,i:'necro'},{v:3,i:'heart'},{v:3,i:'ghost'}
+];
+
+const MONSTERS = {
+  porco:      { name:'O Porco',      emoji:'🐷', desc:'Personagens com o Taco que terminarem na cabana dele sobrevivem.' },
+  fantasma:   { name:'A Fantasma',   emoji:'👻', desc:'Quando um Necronomicon é jogado em outra cabana, ela é obrigada a ir para lá.' },
+  espantalho: { name:'O Espantalho', emoji:'🎃', desc:'Quando uma Cruz é jogada, você não pode trocar as cabanas.' }
+};
+const ICON_INFO = {
+  heart:{ name:'Atrair',       txt:'(opcional) Move uma carta de outra cabana para esta cabana.' },
+  ghost:{ name:'Assustar',     txt:'(opcional) Move uma carta desta cabana para outra cabana.' },
+  bat:  { name:'Taco',         txt:'Sobrevive se a cabana revelada for a do Porco.' },
+  necro:{ name:'Necronomicon', txt:'Se o monstro for a Fantasma, ela é obrigada a vir para esta cabana.' },
+  cross:{ name:'Cruz',         txt:'Se o monstro for o Espantalho, ele não pode trocar cabanas neste turno.' }
+};
+const DIFF = {
+  facil:   { name:'Fácil',   noise:6,   mNoise:4,   inf:0 },
+  normal:  { name:'Normal',  noise:1.5, mNoise:1.5, inf:0.03 },
+  dificil: { name:'Difícil', noise:0.3, mNoise:0.4, inf:0.045 }
+};
+
+/* Geometria do palco (1280x720) */
+const SLOT_CX = [220, 640, 1060], CY = 305;
+const POS = [[0,-129],[-92,0],[92,0],[0,129],[-92,-129],[92,-129],[-92,129],[92,129]];
+const TEST = (typeof window !== 'undefined' && window.__TEST === true);
+
+/* =====================================================================
+   UTILIDADES
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const rand = n => Math.floor(Math.random()*n);
+const shuffle = a => { for(let i=a.length-1;i>0;i--){const j=rand(i+1);[a[i],a[j]]=[a[j],a[i]];} return a; };
+/* Se a partida for recomeçada (S.gen muda), esperas pendentes da partida antiga nunca retomam. */
+const sleep = ms => { const g=S.gen; return new Promise(r => setTimeout(()=>{ if(g===S.gen) r(); }, TEST ? 0 : ms)); };
+const raf = f => (typeof requestAnimationFrame==='function') ? requestAnimationFrame(f) : setTimeout(f,0);
+
+function iconSVG(k){
+  const p = {
+    heart:'<path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z"/>',
+    ghost:'<path d="M12 2a7 7 0 0 0-7 7v12l3-2.5 2 2 2-2 2 2 2-2 3 2.5V9a7 7 0 0 0-7-7z"/><circle cx="9.5" cy="10" r="1.4" fill="#000"/><circle cx="14.5" cy="10" r="1.4" fill="#000"/>',
+    bat:'<g transform="rotate(45 12 12)"><path d="M9.6 1.5h4.8l-.9 13h-3z"/><rect x="11" y="14.5" width="2" height="6" rx="1"/><rect x="10.3" y="20" width="3.4" height="2.4" rx="1.1"/></g>',
+    necro:'<path d="M5 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5z"/><path d="M8 8h8M8 12h8M8 16h5" stroke="#000" stroke-width="1.5" fill="none"/>',
+    cross:'<path d="M10 2h4v6h6v4h-6v10h-4V12H4V8h6z"/>'
+  };
+  return `<svg viewBox="0 0 24 24">${p[k]}</svg>`;
+}
+const el = (tag, cls, html) => { const e=document.createElement(tag); if(cls) e.className=cls; if(html!==undefined) e.innerHTML=html; return e; };
+
+
+/* =====================================================================
+   EFEITOS SONOROS — sintetizados com WebAudio (sem arquivos de áudio)
+   ===================================================================== */
+const SFX = (() => {
+  let ctx=null, master=null, muted=false, nbuf=null;
+  try{ muted = localStorage.getItem('tmvm_mute')==='1'; }catch(e){}
+  function ensure(){
+    if(TEST) return null;
+    if(!ctx){
+      try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null;
+        ctx=new AC(); master=ctx.createGain(); master.gain.value=.55; master.connect(ctx.destination); }catch(e){ return null; }
+    }
+    if(ctx.state==='suspended'){ try{ ctx.resume(); }catch(e){} }
+    return ctx;
+  }
+  function tone(o){
+    const t=o.t, d=o.d||.2, a=o.a||.005, osc=ctx.createOscillator(), g=ctx.createGain();
+    osc.type=o.type||'sine'; osc.frequency.setValueAtTime(o.f,t);
+    if(o.f2) osc.frequency.exponentialRampToValueAtTime(o.f2,t+d);
+    if(o.steps) o.steps.forEach(([dt,f])=>osc.frequency.setValueAtTime(f,t+dt));
+    g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(o.v||.2,t+a);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+    let n=osc; osc.connect(g);
+    if(o.lp){ const f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=o.lp; g.connect(f); n=f; } else n=g;
+    n.connect(master);
+    if(o.vib){ const l=ctx.createOscillator(), lg=ctx.createGain(); l.frequency.value=o.vib[0]; lg.gain.value=o.vib[1]; l.connect(lg); lg.connect(osc.frequency); l.start(t); l.stop(t+d+.05); }
+    osc.start(t); osc.stop(t+d+.05);
+  }
+  function noise(o){
+    const t=o.t, d=o.d||.2;
+    if(!nbuf){ nbuf=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate); const ch=nbuf.getChannelData(0); for(let i=0;i<ch.length;i++) ch[i]=Math.random()*2-1; }
+    const src=ctx.createBufferSource(); src.buffer=nbuf; src.loop=true;
+    const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(o.v||.3,t+(o.a||.004)); g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+    let n=src;
+    if(o.hp){ const f=ctx.createBiquadFilter(); f.type='highpass'; f.frequency.value=o.hp; n.connect(f); n=f; }
+    if(o.lp){ const f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.setValueAtTime(o.lp,t); if(o.lp2) f.frequency.exponentialRampToValueAtTime(o.lp2,t+d); n.connect(f); n=f; }
+    n.connect(g); g.connect(master); src.start(t); src.stop(t+d+.05);
+  }
+  const lib = {
+    ui:     t=>{ tone({t,f:520,d:.05,type:'triangle',v:.1}); },
+    select: t=>{ tone({t,f:760,d:.04,type:'square',v:.04,lp:2200}); },
+    turn:   t=>{ tone({t,f:660,d:.45,v:.13}); tone({t,f:1320,d:.3,v:.05}); },
+    play:   t=>{ noise({t,d:.07,lp:500,v:.14}); tone({t,f:130,f2:80,d:.09,v:.16}); },
+    steps:  t=>{ [0,.2,.4,.6].forEach((dt,i)=>{ const v=.13-i*.02; noise({t:t+dt,d:.09,lp:320,v}); tone({t:t+dt,f:i%2?85:100,f2:55,d:.1,v:v*1.2}); noise({t:t+dt+.03,d:.06,lp:1200,v:.03}); }); },
+
+
+    heart:  t=>{ tone({t,f:75,f2:38,d:.17,v:.7}); tone({t:t+.2,f:70,f2:38,d:.19,v:.5}); },
+    scare:  t=>{ tone({t,f:880,f2:1700,d:.28,type:'sawtooth',v:.1,lp:3500}); noise({t,d:.2,hp:3000,v:.12}); },
+    round:  t=>{ tone({t,f:55,d:1.5,a:.35,type:'sawtooth',v:.18,lp:300}); tone({t,f:82,d:1.5,a:.4,type:'sawtooth',v:.1,lp:300}); noise({t:t+.2,d:1.1,a:.5,lp:250,v:.12}); },
+    flip:   t=>{ tone({t,f:68,f2:34,d:.45,v:.4,lp:200}); tone({t,f:62,d:1.1,a:.15,type:'sawtooth',v:.11,lp:240}); tone({t,f:88,d:1.1,a:.18,type:'sawtooth',v:.07,lp:240});
+                 tone({t,f:110,d:1,a:.2,v:.05,vib:[.7,3]}); tone({t,f:116.5,d:1,a:.2,v:.05,vib:[.9,3]}); noise({t:t+.05,d:.9,a:.3,lp:900,lp2:180,v:.07}); },
+    live:   t=>{ [440,554].forEach((f,i)=>tone({t:t+i*.12,f,d:.55,v:.07,lp:1500})); },
+    die:    t=>{ noise({t,d:.3,lp:700,v:.1}); tone({t,f:95,f2:48,d:.55,v:.2,lp:300}); },
+    miss:   t=>{ tone({t,f:220,f2:150,d:.5,v:.08,lp:600}); },
+    win:    t=>{ [392,494,587,784].forEach((f,i)=>tone({t:t+i*.14,f,d:.7,type:'triangle',v:.2})); },
+    lose:   t=>{ [247,220,185,123].forEach((f,i)=>tone({t:t+i*.22,f,d:.9,type:'sawtooth',v:.14,lp:520})); }
+  };
+  return {
+    names: Object.keys(lib), lastError: null,
+    play(n){ if(muted) return; const c=ensure(); if(!c||!lib[n]) return; try{ lib[n](c.currentTime+.01); }catch(e){ this.lastError=n+': '+e.message; } },
+    get muted(){ return muted; },
+    toggle(){ muted=!muted; try{ localStorage.setItem('tmvm_mute',muted?'1':'0'); }catch(e){} if(!muted) this.play('ui'); return muted; }
+  };
+})();
+
+/* =====================================================================
+   ESTADO
+   ===================================================================== */
+const S = { gen:0, last:null, input:null, sel:null, swapSel:null, inRound:false, turnPlayer:null, monsterIdx:0, round:1,
+            slotCards:[[],[],[]], posOcc:[[],[],[]], cabins:[], belief:[], survivors:[], diff:'normal' };
+let players = [], ALLCARDS = [], slotEls = [], cabinEls = [], logLines = [];
+
+function log(msg){
+  logLines.push(msg); if(logLines.length>80) logLines.shift();
+  const b=$('logbox'); b.innerHTML=''; logLines.slice(-40).forEach(l=>b.appendChild(el('div','',l)));
+  b.scrollTop = b.scrollHeight;
+}
+function setPrompt(text, btns=[]){
+  const h=$('hud'); h.innerHTML='';
+  if(text){ const p=el('div'); p.id='prompt'; p.textContent=text; h.appendChild(p); }
+  btns.forEach(b=>{ const x=el('button','btn'+(b.sec?' sec':''),b.label); x.onclick=b.fn; h.appendChild(x); });
+}
+async function banner(t,s,ms=1500){
+  const b=$('banner'); b.querySelector('.t').textContent=t; b.querySelector('.s').textContent=s||'';
+  b.classList.add('on'); await sleep(ms); b.classList.remove('on'); await sleep(350);
+}
+function ask(type, data={}){
+  return new Promise(res=>{ S.input=Object.assign({type,res},data); refresh(); });
+}
+function answer(v){ const I=S.input; if(!I) return; S.input=null; S.swapSel=null; refresh(); I.res(v); }
+
+/* =====================================================================
+   CARTAS, POSIÇÕES E LAYOUT
+   ===================================================================== */
+function makeCard(owner, def, k){
+  const ch=owner.char;
+  const c={ id:`c${owner.idx}_${k}`, owner:owner.idx, v:def.v, i:def.i, loc:'hand', slot:null, pos:null, dest:null };
+  const e=el('div','card hand'); e.dataset.id=c.id;
+  const url=(ASSETS.characters[ch.id]&&ASSETS.characters[ch.id].cards[def.v+'-'+def.i])||'';
+  e.innerHTML = `<div class="art ${url?'':'fb'}" style="${url?`background-image:url('${url}')`:`--c:${ch.color}`}"></div>`
+    + (url?'':`<div class="init">${ch.name[0]}</div><div class="nm">${ch.name}</div>`)
+    + (url?'':`<div class="pts">${def.v}</div><div class="ico">${iconSVG(def.i)}</div>`);
+  e.title = `${ICON_INFO[def.i].name} — ${ICON_INFO[def.i].txt}`;
+  e.style.opacity='0'; e.style.transform='translate(616px,340px) scale(.3)';
+  c.el=e; $('cards').appendChild(e);
+  return c;
+}
+function putCard(c,s){
+  const occ=S.posOcc[s]; let p=0; while(occ[p]) p++;
+  occ[p]=c; c.pos=p; c.slot=s; c.loc='slot'; S.slotCards[s].push(c);
+}
+function takeCard(c){ S.posOcc[c.slot][c.pos]=null; S.slotCards[c.slot]=S.slotCards[c.slot].filter(x=>x!==c); }
+function moveCard(c,to){ takeCard(c); putCard(c,to); }
+function placeCard(c,s){ const p=players[c.owner]; p.hand=p.hand.filter(x=>x!==c); putCard(c,s); }
+const tableCards = () => ALLCARDS.filter(c=>c.loc==='slot');
+
+function target(c){
+  const p=players[c.owner];
+  if(c.loc==='hand'){
+    if(p.human){
+      const hand=p.hand, n=hand.length, i=hand.indexOf(c), step=Math.min(74,600/Math.max(n,1));
+      const total=96+(n-1)*step;
+      return { x:640-total/2+i*step, y:574-(S.sel===c?28:0), s:1, o:1, z:10+i };
+    }
+    return { x:p.cx-14, y:p.cy-20, s:.3, o:0, z:1 };
+  }
+  if(c.loc==='slot'){
+    const o=POS[c.pos];
+    return { x:SLOT_CX[c.slot]+o[0]-40, y:CY+o[1]-56, s:.8333, o:1, z:20+c.pos };
+  }
+  const d=c.dest||p; return { x:d.cx-14, y:d.cy-20, s:.3, o:0, z:5 };
+}
+function layout(){
+  for(const c of ALLCARDS){
+    const t=target(c), e=c.el;
+    e.style.transform=`translate(${t.x}px,${t.y}px) scale(${t.s})`;
+    e.style.opacity=t.o; e.style.zIndex=t.z;
+  }
+}
+function refresh(){
+  layout();
+  const I=S.input;
+  for(const c of ALLCARDS){
+    const e=c.el, hum=(c.owner===0&&c.loc==='hand');
+    e.classList.toggle('sel',S.sel===c);
+    e.classList.toggle('tbl',c.loc==='slot');
+    e.classList.toggle('hand',c.loc==='hand');
+    e.classList.toggle('dim',hum&&S.inRound&&S.monsterIdx===0);
+    let click=false,pick=false;
+    if(I){ if(I.type==='play'&&hum) click=true; if(I.type==='pickCard'&&I.elig.includes(c)){click=true;pick=true;} }
+    e.classList.toggle('click',click); e.classList.toggle('pick',pick);
+  }
+  $('stage').dataset.mode=I?I.type:'';
+  slotEls.forEach((e,s)=>{
+    let on=false;
+    if(I){ if(I.type==='play'&&S.sel) on=true; if(I.type==='pickSlot'&&I.slots.includes(s)) on=true; if(I.type==='swap') on=true; }
+    e.classList.toggle('on',on);
+    e.classList.toggle('sel',!!(I&&I.type==='swap'&&S.swapSel===s));
+  });
+  updatePanels();
+}
+function onCardClick(c){
+  const I=S.input; if(!I) return;
+  if(I.type==='play'&&c.loc==='hand'&&c.owner===0){
+    S.sel=(S.sel===c)?null:c; if(S.sel) SFX.play('select');
+    setPrompt(S.sel?'Agora toque na cabana onde quer jogar essa carta.':'Sua vez: escolha uma carta da mão.');
+    refresh();
+  } else if(I.type==='pickCard'&&I.elig.includes(c)) answer(c);
+}
+function onSlotClick(s){
+  const I=S.input; if(!I) return;
+  if(I.type==='play'){ if(!S.sel) return; const c=S.sel; S.sel=null; answer({card:c,slot:s}); }
+  else if(I.type==='pickSlot'){ if(I.slots.includes(s)) answer(s); }
+  else if(I.type==='swap'){
+    if(S.swapSel===null){ S.swapSel=s; refresh(); }
+    else if(S.swapSel===s){ S.swapSel=null; refresh(); }
+    else answer([S.swapSel,s]);
+  }
+}
+
+/* =====================================================================
+   PAINÉIS
+   ===================================================================== */
+function buildPanels(){
+  const wrap=$('panels'); wrap.innerHTML='';
+  const bots=players.filter(p=>!p.human), nb=bots.length, gap=12;
+  const w=Math.min(300,(1240-(nb-1)*gap)/nb), total=nb*w+(nb-1)*gap, x0=(1280-total)/2;
+  const mk=(p)=>{
+    const e=el('div','panel'+(p.human?' human':'')); e.id='pan'+p.idx;
+    e.style.left=p.px+'px'; e.style.top=p.py+'px'; e.style.width=p.pw+'px'; e.style.height=p.ph+'px';
+    const av=ASSETS.characters[p.char.id]&&ASSETS.characters[p.char.id].avatar;
+    e.innerHTML=`<div class="av" style="background-color:${p.char.color};${av?`background-image:url('${av}')`:''}">${av?'':p.char.name[0]}</div>
+      <div><div class="nm">${p.human?'Você · ':''}${p.name}</div><div class="st">⭐ <b class="sc">0</b> pts · ${ASSETS.charBack&&!p.human?`<span class="bk" style="background-image:url('${ASSETS.charBack}')"></span>`:'✋ '}<span class="hc">8</span></div><div class="role"></div></div>`;
+    wrap.appendChild(e);
+    p.cx=p.px+p.pw/2; p.cy=p.py+p.ph/2;
+  };
+  bots.forEach((p,i)=>{ p.px=x0+i*(w+gap); p.py=8; p.pw=w; p.ph=76; mk(p); });
+  const h=players[0]; h.px=14; h.py=566; h.pw=200; h.ph=138; mk(h);
+}
+function updatePanels(){
+  players.forEach(p=>{
+    const e=$('pan'+p.idx); if(!e) return;
+    const mon=S.inRound&&S.monsterIdx===p.idx;
+    e.classList.toggle('monster',mon); e.classList.toggle('turn',S.turnPlayer===p&&!mon);
+    e.querySelector('.sc').textContent=p.score;
+    e.querySelector('.hc').textContent=p.hand.length;
+    e.querySelector('.role').textContent=mon?'👹 MONSTRO':(S.turnPlayer===p?'▶ jogando':'');
+  });
+}
+
+/* =====================================================================
+   CABANAS
+   ===================================================================== */
+function createCabins(){
+  cabinEls.forEach(e=>e.remove()); cabinEls=[];
+  for(let s=0;s<3;s++){
+    const e=el('div','cabin'); e.style.left=(SLOT_CX[s]-48)+'px'; e.style.top=(CY-67)+'px'; e.style.opacity='0';
+    const bk=ASSETS.cabins.back;
+    e.innerHTML=`<div class="flip"><div class="face back ${bk?'':'noimg'}" style="${bk?`background-image:url('${bk}')`:''}"></div><div class="face front"></div></div><div class="chip" style="display:none"></div>`;
+    $('table').appendChild(e); cabinEls.push(e);
+  }
+  renderCabins();
+  raf(()=>cabinEls.forEach(e=>e.style.opacity='1'));
+}
+function renderCabins(){
+  cabinEls.forEach((e,s)=>{
+    const t=S.cabins[s]||'vazia', f=e.querySelector('.front'), chip=e.querySelector('.chip');
+    const url=ASSETS.cabins[t];
+    f.style.backgroundImage=url?`url('${url}')`:'';
+    f.innerHTML=url?'':(t==='vazia'?`<div class="e">🏚️</div><div class="t">Vazia</div>`:`<div class="e">${MONSTERS[t].emoji}</div><div class="t">${MONSTERS[t].name}</div>`);
+    const show=S.monsterIdx===0&&S.inRound&&!TEST;
+    chip.style.display=show?'block':'none';
+    chip.textContent=t==='vazia'?'vazia':MONSTERS[t].emoji+' '+MONSTERS[t].name;
+  });
+}
+async function animateSwap(a,b){
+  const ea=cabinEls[a], eb=cabinEls[b], dx=SLOT_CX[b]-SLOT_CX[a];
+  ea.style.zIndex=eb.style.zIndex=35;
+  ea.style.transition=eb.style.transition='transform .7s ease';
+  ea.style.transform=`translate(${dx}px,-26px)`; eb.style.transform=`translate(${-dx}px,26px)`;
+  await sleep(760);
+}
+async function doSwap(a,b){
+  log(`O monstro trocou as cabanas ${a+1} e ${b+1}.`); SFX.play('steps');
+  await animateSwap(a,b);
+  [S.cabins[a],S.cabins[b]]=[S.cabins[b],S.cabins[a]];
+  [S.belief[a],S.belief[b]]=[S.belief[b],S.belief[a]];
+  [cabinEls[a],cabinEls[b]].forEach(e=>{ e.style.transition='none'; e.style.transform=''; e.style.zIndex=''; });
+  renderCabins();
+  if(cabinEls[a]) void cabinEls[a].offsetWidth;
+  [cabinEls[a],cabinEls[b]].forEach(e=>{ e.style.transition=''; });
+}
+
+/* =====================================================================
+   IA DOS BOTS
+   ===================================================================== */
+function evalFor(p, slots, belief, necroSlot, inf){
+  let b=belief.slice();
+  if(necroSlot!==null) b=b.map((x,s)=>(2/3)*x+(s===necroSlot?1/3:0));
+  const tot=slots.map(a=>a.reduce((t,c)=>t+c.v,0));
+  let w=b.map((x,s)=>x*Math.exp(inf*tot[s])); const z=w.reduce((a,c)=>a+c,0); w=w.map(x=>x/z);
+  let own=0, oth=0;
+  slots.forEach((a,s)=>a.forEach(c=>{
+    const ps=c.i==='bat'?1-w[s]*2/3:1-w[s], v=c.v*ps;
+    if(c.owner===p.idx) own+=v; else oth+=v;
+  }));
+  return own-0.35*oth/Math.max(1,S.survivors.length-1);
+}
+function botPlan(p){
+  const d=DIFF[S.diff]; let best=null;
+  for(const c of p.hand){
+    for(let s=0;s<3;s++){
+      const base=S.slotCards.map(a=>a.slice()); base[s].push(c);
+      const necro=c.i==='necro'?s:null;
+      const opts=[{eff:null,slots:base}];
+      if(c.i==='heart'){
+        for(let t=0;t<3;t++){ if(t===s) continue;
+          for(const x of S.slotCards[t]){ const b2=base.map(a=>a.slice()); b2[t]=b2[t].filter(y=>y!==x); b2[s].push(x); opts.push({eff:{card:x,to:s},slots:b2}); } }
+      }
+      if(c.i==='ghost'){
+        for(const x of S.slotCards[s]){
+          for(let t=0;t<3;t++){ if(t===s) continue; const b2=base.map(a=>a.slice()); b2[s]=b2[s].filter(y=>y!==x); b2[t].push(x); opts.push({eff:{card:x,to:t},slots:b2}); } }
+      }
+      for(const o of opts){
+        const sc=evalFor(p,o.slots,S.belief,necro,d.inf)+(Math.random()-.5)*d.noise;
+        if(!best||sc>best.sc) best={sc,card:c,slot:s,effect:o.eff};
+      }
+    }
+  }
+  return best;
+}
+function killValue(cab){
+  const type=cab.find(x=>x!=='vazia'); let v=0;
+  cab.forEach((t,s)=>{ if(t==='vazia') return; S.slotCards[s].forEach(c=>{ if(type==='porco'&&c.i==='bat') return; v+=c.v; }); });
+  return v;
+}
+function botMonsterSwap(){
+  const d=DIFF[S.diff], opts=[null,[0,1],[0,2],[1,2]];
+  if(Math.random()<0.12) return opts[rand(4)];
+  let best=null;
+  for(const o of opts){
+    const cab=S.cabins.slice(); if(o) [cab[o[0]],cab[o[1]]]=[cab[o[1]],cab[o[0]]];
+    const m=cab.findIndex(x=>x!=='vazia');
+    const v=killValue(cab)+0.7*S.slotCards[m].length+Math.random()*d.mNoise+(o===null?0.3:0);
+    if(!best||v>best.v) best={v,o};
+  }
+  return best.o;
+}
+
+/* =====================================================================
+   FLUXO DE JOGO
+   ===================================================================== */
+function modalChoice(title, text, options){
+  return new Promise(res=>{
+    const ov=$('overlay'); ov.innerHTML=''; const box=el('div','box');
+    box.appendChild(el('h2','',title)); if(text) box.appendChild(el('p','',text));
+    const row=el('div','row');
+    options.forEach(o=>{ const b=el('div','opt'+(o.img?' mon':''),`${o.img?`<img src="${o.img}" alt="" onerror="this.style.display='none'">`:''}${o.label}${o.desc?`<small>${o.desc}</small>`:''}`); b.onclick=()=>{ ov.classList.remove('on'); res(o.key); }; row.appendChild(b); });
+    box.appendChild(row); ov.appendChild(box); ov.classList.add('on');
+  });
+}
+
+async function humanSetup(){
+  const type=await modalChoice('Você é o monstro desta rodada!','Escolha com qual monstro quer jogar. Só você saberá onde ele está.',
+    Object.keys(MONSTERS).map(k=>({key:k,img:ASSETS.cabins[k]||'',label:ASSETS.cabins[k]?MONSTERS[k].name:`${MONSTERS[k].emoji} ${MONSTERS[k].name}`,desc:MONSTERS[k].desc})));
+  setPrompt('Toque na cabana onde o monstro ficará escondido.');
+  const slot=await ask('pickSlot',{slots:[0,1,2]});
+  return {type,slot};
+}
+async function humanSwap(){
+  S.swapSel=null;
+  setPrompt('Você é o monstro: toque em duas cabanas para trocá-las de lugar (ou mantenha).',[{label:'Manter como está',fn:()=>answer(null),sec:true}]);
+  return await ask('swap');
+}
+
+async function resolveEffect(p,c,plan){
+  const human=p.human&&!TEST;
+  if(c.i==='heart'){
+    const elig=tableCards().filter(x=>x.slot!==c.slot); if(!elig.length) return;
+    let tgt=null;
+    if(human){ setPrompt('♥ Atrair (opcional): toque em uma carta de outra cabana para trazê-la para cá.',[{label:'Não usar',fn:()=>answer(null),sec:true}]); tgt=await ask('pickCard',{elig}); }
+    else tgt=plan&&plan.effect?plan.effect.card:null;
+    if(tgt){ SFX.play('heart'); log(`${p.name} atraiu uma carta de ${players[tgt.owner].name} para a cabana ${c.slot+1}.`); moveCard(tgt,c.slot); refresh(); await sleep(700); }
+  } else if(c.i==='ghost'){
+    const elig=S.slotCards[c.slot].filter(x=>x!==c); if(!elig.length) return;
+    let tgt=null,dest=null;
+    if(human){
+      setPrompt('👻 Assustar (opcional): toque em outra carta desta cabana para expulsá-la.',[{label:'Não usar',fn:()=>answer(null),sec:true}]);
+      tgt=await ask('pickCard',{elig});
+      if(tgt){ setPrompt('Para qual cabana ela deve fugir?',[{label:'Cancelar',fn:()=>answer(null),sec:true}]); dest=await ask('pickSlot',{slots:[0,1,2].filter(s=>s!==c.slot)}); }
+    } else if(plan&&plan.effect){ tgt=plan.effect.card; dest=plan.effect.to; }
+    if(tgt&&dest!==null){ SFX.play('scare'); log(`${p.name} assustou uma carta de ${players[tgt.owner].name} para a cabana ${dest+1}.`); moveCard(tgt,dest); refresh(); await sleep(700); }
+  }
+}
+
+async function turn(p,last){
+  S.turnPlayer=p; S.sel=null; refresh();
+  const mon=players[S.monsterIdx];
+  let plan=null, choice;
+  if(p.human&&!TEST){
+    setPrompt('Sua vez: escolha uma carta da mão e toque na cabana onde quer jogá-la.'); SFX.play('turn');
+    choice=await ask('play');
+  } else {
+    setPrompt(`${p.name} está escolhendo...`); await sleep(CFG.BOT_DELAY);
+    plan=botPlan(p); choice={card:plan.card,slot:plan.slot};
+  }
+  const c=choice.card;
+  placeCard(c,choice.slot); refresh(); SFX.play('play');
+  log(`${p.name} jogou ${c.v} (${ICON_INFO[c.i].name}) na cabana ${choice.slot+1}.`);
+  await sleep(750);
+
+  let forced=null, lock=false;
+  await resolveEffect(p,c,plan);
+  if(c.i==='necro'&&S.cabins.includes('fantasma')&&S.cabins[c.slot]!=='fantasma') forced=c.slot;
+  if(c.i==='cross'&&S.cabins.includes('espantalho')) lock=true;
+
+  S.turnPlayer=null; refresh();
+  if(forced!==null&&(!last||CFG.GHOST_FORCES_ON_LAST_PLAY)){
+    if(mon.human&&!TEST){ setPrompt('O Necronomicon atrai a Fantasma! Ela é obrigada a ir para essa cabana.'); await sleep(1200); }
+    else setPrompt('O monstro está agindo...');
+    await doSwap(S.cabins.indexOf('fantasma'),forced); await sleep(300);
+  } else if(!last){
+    if(lock){
+      if(mon.human&&!TEST){ setPrompt('A Cruz impede o Espantalho de trocar as cabanas neste turno.'); await sleep(1500); }
+      else { setPrompt('O monstro manteve as cabanas.'); await sleep(500); }
+    } else {
+      let pair;
+      if(mon.human&&!TEST) pair=await humanSwap();
+      else { setPrompt(`${mon.name} (monstro) está agindo...`); await sleep(CFG.BOT_DELAY); pair=botMonsterSwap(); }
+      if(pair){ setPrompt('O monstro trocou duas cabanas!'); await doSwap(pair[0],pair[1]); await sleep(300); }
+      else { setPrompt('O monstro manteve as cabanas.'); await sleep(500); }
+    }
+  }
+}
+
+async function playRound(){
+  const N=players.length, m=S.monsterIdx, mon=players[m];
+  S.survivors=[]; for(let k=1;k<N;k++) S.survivors.push(players[(m+k)%N]);
+  S.inRound=true; S.turnPlayer=null; S.sel=null;
+  S.cabins=['vazia','vazia','vazia']; S.belief=[1/3,1/3,1/3];
+  $('roundinfo').textContent=`RODADA ${S.round} DE ${N}  ·  MONSTRO: ${mon.name.toUpperCase()}`;
+  updatePanels(); refresh();
+  log(`— Rodada ${S.round}: ${mon.name} é o monstro —`);
+  SFX.play('round');
+  await banner(`Rodada ${S.round}`, mon.human?'Você é o monstro!':`${mon.name} é o monstro`, 1500);
+
+  let type,slot;
+  if(mon.human&&!TEST){ createCabins(); const r=await humanSetup(); type=r.type; slot=r.slot; }
+  else { type=Object.keys(MONSTERS)[rand(3)]; slot=rand(3); }
+  S.cabins[slot]=type; S.monsterType=type;
+  createCabins(); refresh();
+  if(!mon.human) { setPrompt(`${mon.name} escondeu o monstro em uma das 3 cabanas.`); await sleep(1100); }
+
+  const total=S.survivors.length*2;
+  for(let t=0;t<total;t++) await turn(S.survivors[t%S.survivors.length], t===total-1);
+
+  // revelação
+  S.turnPlayer=null; refresh();
+  setPrompt('Hora da verdade... revelando as cabanas!'); await sleep(900);
+  for(let s=0;s<3;s++){ cabinEls[s].classList.add('rev'); SFX.play('flip'); await sleep(850); }
+  await sleep(700);
+
+  const gains=players.map(()=>0); let killed=0, hDied=false, hLived=false;
+  for(const c of tableCards()){
+    const t=S.cabins[c.slot];
+    const dead=(t!=='vazia')&&!(t==='porco'&&c.i==='bat');
+    const dest=dead?mon:players[c.owner];
+    if(c.owner===0){ if(dead) hDied=true; else hLived=true; }
+    dest.score+=c.v; dest.pile.push(c); gains[dest.idx]+=c.v; if(dead) killed+=c.v;
+    c.dest=dest; c.loc='gone'; c.el.classList.remove('tbl');
+    log(`${players[c.owner].name} (${c.v}) ${dead?'morreu':'sobreviveu'} → pontos para ${dest.name}.`);
+  }
+  S.slotCards=[[],[],[]]; S.posOcc=[[],[],[]];
+  refresh();
+  if(mon.human) SFX.play(killed>0?'die':'miss');
+  else { if(hDied) SFX.play('die'); if(hLived) setTimeout(()=>SFX.play('live'),hDied?650:0); }
+  const txt=`${MONSTERS[type].emoji} ${MONSTERS[type].name} estava na cabana ${S.cabins.indexOf(type)+1}. `+players.filter(p=>gains[p.idx]>0).map(p=>`${p.name} +${gains[p.idx]}`).join(' · ');
+  log(txt);
+  if(TEST){ S.monsterIdx=(S.monsterIdx+1)%N; S.round++; return; }
+  const last=S.round===N;
+  setPrompt(txt,[{label:last?'Ver resultado final':'Próxima rodada',fn:()=>answer(true)}]);
+  await ask('continue');
+  cabinEls.forEach(e=>e.style.opacity='0'); await sleep(450);
+  S.monsterIdx=(S.monsterIdx+1)%N; S.round++;
+}
+
+async function finalScreen(){
+  S.inRound=false; refresh(); setPrompt('');
+  if(TEST) return;
+  const sorted=players.slice().sort((a,b)=>b.score-a.score), top=sorted[0].score;
+  const winners=sorted.filter(p=>p.score===top);
+  SFX.play(winners.some(w=>w.human)?'win':'lose');
+  const ov=$('overlay'); ov.innerHTML=''; const box=el('div','box');
+  box.appendChild(el('h1','','Fim de jogo'));
+  box.appendChild(el('p','', winners.length>1?`<div style="text-align:center;font-size:22px;color:#ffd54a">Empate entre ${winners.map(w=>w.name).join(' e ')}!</div>`:`<div style="text-align:center;font-size:22px;color:#ffd54a">${winners[0].human?'Você venceu!':winners[0].name+' venceu!'}</div>`));
+  const tb=el('table','rank');
+  sorted.forEach(p=>{ const tr=el('tr',p.score===top?'w':''); tr.innerHTML=`<td><span class="sw" style="background:${p.char.color}"></span>${p.human?'Você · ':''}${p.name}</td><td>${p.pile.length} cartas</td><td><b>${p.score}</b> pts</td>`; tb.appendChild(tr); });
+  box.appendChild(tb);
+  const row=el('div','row'); const b=el('button','btn','Jogar novamente'); b.onclick=()=>{ ov.classList.remove('on'); showStart(); }; row.appendChild(b);
+  box.appendChild(row); ov.appendChild(box); ov.classList.add('on');
+}
+
+async function startGame({charId,bots,diff}){
+  abortGame(); S.last={charId,bots,diff};
+  $('overlay').classList.remove('on'); $('cards').innerHTML=''; $('table').innerHTML='';
+  cabinEls=[]; slotEls=[]; logLines=[]; $('logbox').innerHTML='';
+  const me=CHARACTERS.find(c=>c.id===charId)||CHARACTERS[0];
+  const rest=shuffle(CHARACTERS.filter(c=>c!==me)).slice(0,bots);
+  players=[me,...rest].map((ch,i)=>({idx:i,char:ch,name:ch.name,human:i===0,hand:[],pile:[],score:0}));
+  const N=players.length;
+  ALLCARDS=[]; players.forEach(p=>DECK.forEach((d,k)=>{ const c=makeCard(p,d,k); p.hand.push(c); ALLCARDS.push(c); }));
+  Object.assign(S,{round:1,monsterIdx:rand(N),diff,sel:null,input:null,inRound:false,turnPlayer:null,
+    slotCards:[[],[],[]],posOcc:[[],[],[]],cabins:[],belief:[1/3,1/3,1/3],survivors:[]});
+  for(let s=0;s<3;s++){ const e=el('div','slot'); e.style.left=(SLOT_CX[s]-155)+'px'; e.style.top=(CY-195)+'px'; e.onclick=()=>onSlotClick(s); $('table').appendChild(e); slotEls.push(e); }
+  buildPanels(); $('roundinfo').textContent='';
+  raf(()=>refresh());
+  await sleep(600);
+  while(S.round<=N) await playRound();
+  await finalScreen();
+}
+
+/* =====================================================================
+   TELAS: início, regras, ajuda
+   ===================================================================== */
+const RULES_HTML = `
+<h1>Todo Mundo Vai Morrer</h1>
+<p>Um grupo de jovens tenta escapar de um monstro misterioso em um acampamento isolado.</p>
+<h2>Como funciona</h2>
+<ul>
+<li>Cada jogador tem 8 cartas do seu personagem. O jogo dura tantas rodadas quantos forem os jogadores; em cada uma, um jogador é o <b>monstro</b> (o papel passa no sentido horário) e os demais são <b>sobreviventes</b>.</li>
+<li>O monstro escolhe seu monstro (Porco, Fantasma ou Espantalho) e o esconde em uma de 3 cabanas viradas para baixo; as outras 2 são vazias.</li>
+<li>Em seu turno, cada sobrevivente joga 1 carta ao lado de uma cabana e resolve o ícone dela. Depois de cada jogada, o monstro pode trocar 2 cabanas de lugar (exceto na última jogada da rodada). Cada sobrevivente joga 2 cartas por rodada.</li>
+<li>No fim, as cabanas são reveladas: personagens na cabana do monstro <b>morrem</b> (pontos para o monstro); os demais <b>sobrevivem</b> (pontos para o dono). O valor está no canto superior esquerdo da carta.</li>
+<li>Vence quem tiver mais pontos no fim. Empates são possíveis.</li>
+</ul>
+<h2>Ícones</h2>
+<div class="legend">${Object.keys(ICON_INFO).map(k=>`<div>${iconSVG(k)}<span><b>${ICON_INFO[k].name}</b> — ${ICON_INFO[k].txt}</span></div>`).join('')}</div>
+<h2>Monstros</h2>
+<div class="legend">${Object.keys(MONSTERS).map(k=>`<div><span style="font-size:26px;width:26px">${MONSTERS[k].emoji}</span><span><b>${MONSTERS[k].name}</b> — ${MONSTERS[k].desc}</span></div>`).join('')}</div>
+<div class="row"><button class="btn" id="closeModal">Fechar</button></div>`;
+/* Mostra um conteúdo no overlay guardando o que havia antes; devolve a função que restaura. */
+function overlayPush(node){
+  const ov=$('overlay'), nodes=[...ov.childNodes], was=ov.classList.contains('on');
+  ov.innerHTML=''; ov.appendChild(node); ov.classList.add('on');
+  return ()=>{ ov.innerHTML=''; nodes.forEach(n=>ov.appendChild(n)); ov.classList.toggle('on',was); };
+}
+function showHtml(html){
+  const box=el('div','box',html), restore=overlayPush(box);
+  const c=box.querySelector('#closeModal'); if(c) c.onclick=restore;
+}
+function abortGame(){
+  S.gen++; S.input=null; S.sel=null; S.swapSel=null; S.inRound=false; S.turnPlayer=null;
+  setPrompt(''); $('banner').classList.remove('on');
+}
+function clearBoard(){
+  ['cards','table','panels'].forEach(i=>$(i).innerHTML=''); $('roundinfo').textContent='';
+  players=[]; ALLCARDS=[]; cabinEls=[]; slotEls=[];
+}
+function askRestart(){
+  if(!players.length) return;
+  const box=el('div','box'); box.appendChild(el('h2','','Recomeçar o jogo?')); box.appendChild(el('p','','A partida atual será perdida.'));
+  const row=el('div','row'); let restore;
+  const mk=(label,desc,fn)=>{ const b=el('div','opt',`${label}<small>${desc}</small>`); b.onclick=fn; row.appendChild(b); };
+  mk('↺ Mesmas opções','Nova partida com o mesmo personagem, bots e dificuldade',()=>{ $('overlay').classList.remove('on'); startGame(S.last); });
+  mk('☰ Voltar ao menu','Escolher personagem, bots e dificuldade',()=>{ abortGame(); clearBoard(); showStart(); });
+  mk('Continuar jogando','Fechar este aviso',()=>restore());
+  box.appendChild(row); restore=overlayPush(box);
+}
+function showStart(){
+  S.startVisible=true;
+  let saved={}; try{ const s=localStorage.getItem('tmvm'); if(typeof s==='string') saved=JSON.parse(s)||{}; }catch(e){}
+  const st={charId:saved.charId||'tina',bots:saved.bots||3,diff:saved.diff||'normal'};
+  const ov=$('overlay'); ov.innerHTML=''; ov.classList.add('on');
+  const box=el('div','box'); box.appendChild(el('h1','','Todo Mundo Vai Morrer'));
+  box.appendChild(el('p','','<div style="text-align:center;color:#bbb">Versão digital · você contra bots</div>'));
+  const group=(title,items,key,fmt)=>{
+    box.appendChild(el('h2','',title)); const row=el('div','row');
+    items.forEach(it=>{ const b=el('div','opt'+(st[key]===it.v?' on':''),it.html); b.onclick=()=>{ st[key]=it.v; [...row.children].forEach(x=>x.classList.remove('on')); b.classList.add('on'); }; row.appendChild(b); });
+    box.appendChild(row);
+  };
+  group('Seu personagem',CHARACTERS.map(c=>({v:c.id,html:`<span class="sw" style="background:${c.color}"></span>${c.name}${c.id==='bia'?'<small>provisório</small>':''}`})),'charId');
+  group('Bots adversários',[2,3,4].map(n=>({v:n,html:`${n} bots<small>${n+1} jogadores</small>`})),'bots');
+  group('Dificuldade',Object.keys(DIFF).map(k=>({v:k,html:DIFF[k].name})),'diff');
+  const row=el('div','row'); row.style.marginTop='18px';
+  const go=el('button','btn','Jogar'); go.style.fontSize='20px'; go.style.padding='10px 34px';
+  go.onclick=()=>{ S.startVisible=false; try{localStorage.setItem('tmvm',JSON.stringify(st));}catch(e){} startGame(st); };
+  const ru=el('button','btn sec','Regras'); ru.onclick=()=>showHtml(RULES_HTML);
+  row.appendChild(go); row.appendChild(ru); box.appendChild(row); ov.appendChild(box);
+}
+
+/* =====================================================================
+   INICIALIZAÇÃO
+   ===================================================================== */
+function fit(){
+  const w=window.innerWidth,h=window.innerHeight,s=Math.min(w/1280,h/720);
+  $('stage').style.transform=`translate(${(w-1280*s)/2}px,${(h-720*s)/2}px) scale(${s})`;
+}
+if(!TEST){
+  if(ASSETS.background) $('bg').style.backgroundImage=`url('${ASSETS.background}')`;
+  $('aid').innerHTML='<b>AJUDA</b>'+Object.keys(ICON_INFO).map(k=>`<div>${iconSVG(k)}<span>${ICON_INFO[k].name}</span></div>`).join('');
+  $('aid').onclick=()=>showHtml(RULES_HTML);
+  $('btnRules').onclick=()=>showHtml(RULES_HTML);
+  $('btnRestart').onclick=askRestart;
+  const snd=()=>{ $('btnSound').textContent=SFX.muted?'🔇 Mudo':'🔊 Som'; };
+  $('btnSound').onclick=()=>{ SFX.toggle(); snd(); }; snd();
+  document.addEventListener('click',e=>{ if(e.target.closest('.btn,.opt')&&e.target.id!=='btnSound') SFX.play('ui'); });
+  $('btnLog').onclick=()=>$('logbox').classList.toggle('on');
+  $('cards').addEventListener('click',e=>{
+    const t=e.target.closest('.card'); if(!t) return;
+    const c=ALLCARDS.find(x=>x.id===t.dataset.id); if(c) onCardClick(c);
+  });
+  window.addEventListener('resize',fit); window.addEventListener('orientationchange',fit);
+  fit(); showStart();
+}
+</script>
+</body>
+</html>
